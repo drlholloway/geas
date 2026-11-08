@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+*.iml
+*.swp
+.vscode/
+
+# Secrets
+.env
+.env.*
+
+# Toolchain-specific entries get added once the stack is chosen.

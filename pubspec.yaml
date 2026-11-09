@@ -1,0 +1,8 @@
+name: geas_workspace
+description: Pub workspace root for the Geas monorepo.
+publish_to: none
+environment:
+  sdk: ^3.6.0
+workspace:
+  - packages/geas_core
+  - apps/geas_cli

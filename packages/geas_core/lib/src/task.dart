@@ -17,6 +17,14 @@ final _frontmatterPattern = RegExp(
 );
 const _keep = Object();
 
+/// The YAML between the opening and closing `---` lines, and everything
+/// after them, or null if [text] doesn't start with frontmatter.
+({String frontmatter, String body})? splitFrontmatter(String text) {
+  final match = _frontmatterPattern.matchAsPrefix(text);
+  if (match == null) return null;
+  return (frontmatter: match[1]!, body: text.substring(match.end));
+}
+
 /// One task: a Markdown file with YAML frontmatter, `tasks/<id>.md`.
 class Task {
   Task({
@@ -61,16 +69,16 @@ class Task {
 
   /// Parses a task file, throwing [FormatException] if it isn't valid.
   factory Task.parse(String text) {
-    final match = _frontmatterPattern.matchAsPrefix(text);
-    if (match == null) {
+    final parts = splitFrontmatter(text);
+    if (parts == null) {
       throw const FormatException(
         'A task file starts with YAML frontmatter between "---" lines.',
       );
     }
-    final frontmatter = match[1]!;
+    final (:frontmatter, :body) = parts;
     return Task._fromYaml(
       parseYamlMap(frontmatter.isEmpty ? '{}' : frontmatter, 'Frontmatter'),
-      body: text.substring(match.end),
+      body: body,
       frontmatter: frontmatter,
     );
   }

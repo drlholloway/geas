@@ -41,10 +41,10 @@ void main() {
   });
 
   test('init on an initialized repo changes nothing', () async {
-    github.files[repoConfigPath] = utf8.encode(initialRepoConfig);
+    github.push({repoConfigPath: utf8.encode(initialRepoConfig)});
 
     expect(await geas(['init', 'drl/geas-data']), 0);
-    expect(github.commits, isEmpty);
+    expect(github.commits, ['push']);
     expect(out.toString(), contains('already a Geas data repo'));
   });
 
@@ -65,7 +65,7 @@ void main() {
   });
 
   test('init reports a newer data format', () async {
-    github.files[repoConfigPath] = utf8.encode('format: 9\n');
+    github.push({repoConfigPath: utf8.encode('format: 9\n')});
 
     expect(await geas(['init', 'drl/geas-data']), 1);
     expect(err.toString(), contains('format 9'));

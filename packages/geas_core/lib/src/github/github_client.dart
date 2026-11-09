@@ -36,12 +36,52 @@ class GitHubException implements Exception {
   String toString() => 'GitHub API error $statusCode: $message';
 }
 
-/// The slice of the GitHub REST API that Geas uses, bound to one repository.
+/// GitHub refused to move the branch because it isn't an ancestor of the new
+/// commit: another device pushed first.
+class NotFastForwardException extends GitHubException {
+  const NotFastForwardException(String message) : super(422, message);
+}
+
+/// The slice of the GitHub REST API that Geas uses, bound to one repository
+/// and one branch.
 ///
 /// Sync and merge logic talk to this interface only, so tests run against
 /// `FakeGitHubClient` from `package:geas_core/testing.dart`.
 abstract interface class GitHubClient {
   RepoRef get repo;
+
+  /// The branch that holds the data, normally `main`.
+  String get branch;
+
+  /// The commit at the tip of [branch], or null if the repository is empty
+  /// or has no such branch.
+  Future<String?> branchHead();
+
+  /// The SHA of the tree that [commitSha] points to.
+  Future<String> commitTree(String commitSha);
+
+  /// Every file in the tree [treeSha], recursively, as path to blob SHA.
+  Future<Map<String, String>> readTree(String treeSha);
+
+  Future<List<int>> readBlob(String sha);
+
+  /// Uploads [content] and returns its blob SHA.
+  Future<String> createBlob(List<int> content);
+
+  /// A new tree: [baseTree] with [changes] applied. Each change maps a path
+  /// to a blob SHA to add or replace it, or to null to delete it.
+  Future<String> createTree(String baseTree, Map<String, String?> changes);
+
+  Future<String> createCommit({
+    required String message,
+    required String tree,
+    required List<String> parents,
+  });
+
+  /// Moves [branch] to [commitSha] without forcing it. Throws
+  /// [NotFastForwardException] if the branch has moved since [commitSha]'s
+  /// parent was read.
+  Future<void> updateBranch(String commitSha);
 
   /// The contents of [path] on the default branch, or null if there is no
   /// such file. An empty repository has no files.

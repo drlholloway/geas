@@ -6,3 +6,4 @@ environment:
 workspace:
   - packages/geas_core
   - apps/geas_cli
+  - apps/geas

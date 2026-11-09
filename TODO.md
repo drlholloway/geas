@@ -104,20 +104,23 @@ The Git Data API refuses writes to an empty repo, so `geas init` creates
       added to the workspace and to `just analyze` / `just test`
 - [x] `analysis_options.yaml`, `justfile`, Dart entries in `.gitignore`
 - [x] Install `just` (`brew install just`)
-- [ ] GitHub Actions: analyze and test on push
+- [x] GitHub Actions: analyze and test on push to main and on PRs
 
 ## Phase 1: Core model and format (`geas_core`)
 
-- [ ] ULID generation and short-ID resolution
-- [ ] `Task`, `TaskList`, `Priority` and `Due` (date or date-time) models
-- [ ] Markdown + YAML frontmatter parse and write, with round-trip tests that
-      cover unknown keys and hand-edited files
-- [ ] Checklist parsing and toggling in the body
-- [ ] Built-in `inbox` list
-- [ ] Queries: by list, by tag, today, overdue, next 7 days, completed.
+- [x] ULID generation and short-ID resolution
+- [x] `Task`, `TaskList`, `Priority` and `Due` (date or date-time) models
+- [x] Markdown + YAML frontmatter parse and write, with round-trip tests that
+      cover unknown keys and hand-edited files. Rewrites go through
+      `yaml_edit` and touch only changed fields, so comments, key order and
+      unknown keys survive and git diffs stay minimal
+- [x] Checklist parsing and toggling in the body
+- [x] Built-in `inbox` list
+- [x] Queries: by list, by tag, today, overdue, next 7 days, completed.
       Default sort is due date, then priority.
-- [ ] Archive step: tasks completed more than 30 days ago move to
-      `archive/<yyyy>/`
+- [x] Archive step: tasks completed more than 30 days ago move to
+      `archive/<yyyy>/` (`taskPath`, `archiveMoves`; the store applies them
+      in Phase 2)
 
 ## Phase 2: Sync (`geas_core`)
 

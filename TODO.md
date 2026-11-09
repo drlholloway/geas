@@ -183,18 +183,28 @@ end to end.
 
 - [x] `geas init <owner/repo>` bootstraps the data repo (token from
       `GEAS_TOKEN` or a hidden prompt)
-- [ ] `geas init` remembers the repo and stores the token
-- [ ] `geas add "title" [-l list] [-t tag]... [-d due] [-p priority]`
-- [ ] `geas ls [-l list] [-t tag] [--today|--overdue|--week] [--done]`
-- [ ] `geas show <id>`, `geas done <id>`, `geas rm <id>`
-- [ ] `geas edit <id>`: opens the task file in `$EDITOR` and validates it on
-      save
-- [ ] `geas lists` (add, rename, remove) and `geas tags`
-- [ ] `geas sync`; other commands sync automatically, and `--offline` skips it
-- [ ] Due parsing: `today`, `tomorrow`, weekday names, `YYYY-MM-DD`, optional
-      `HH:MM`
-- [ ] Token from `GEAS_TOKEN`, otherwise the macOS Keychain (`security`) or
-      Linux `secret-tool`
+- [x] `geas init` remembers the repo and device in
+      `~/.config/geas/config.yaml` and stores an entered token; the local
+      copy lives in `~/.local/share/geas/<owner>/<repo>` (XDG overrides
+      honored)
+- [x] `geas add "title" [-l list] [-t tag]... [-d due] [-p priority]`
+- [x] `geas ls [-l list] [-t tag] [--today|--overdue|--week] [--done]`
+      (`--today` and `--week` include overdue)
+- [x] `geas show <id>`, `geas done <id>... [--undo]`, `geas rm <id>...`
+- [x] `geas edit <id>`: opens the task file in `$VISUAL`/`$EDITOR` and
+      validates it on save; an invalid edit can be retried or is kept
+- [x] `geas lists` (add, rename, rm, which moves its tasks to the inbox) and
+      `geas tags`
+- [x] `geas sync`; other commands sync automatically, and `--offline` skips
+      it. Unreachable GitHub only warns; the local copy is used and changes
+      go out with the next sync
+- [x] Due parsing (`parseDueInput` in core, for the app too): `today`,
+      `tomorrow`, weekday names, `YYYY-MM-DD`, optional `HH:MM` or `5pm`.
+      Times are stored with the device's offset
+- [x] Token from `GEAS_TOKEN`, otherwise the macOS Keychain (`security -i`,
+      so the token never appears in the process list) or Linux `secret-tool`
+- [x] Tried live against `geas-data` (2026-11-09): init, add, ls, show,
+      edit, done, rm, sync
 - [x] `just cli` builds `build/geas` with `dart compile exe`
 
 ## Phase 4: App (`apps/geas`)

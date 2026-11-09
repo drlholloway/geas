@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:geas_core/geas_core.dart';
-import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import 'config.dart';
@@ -137,10 +134,6 @@ class Session {
 
   void _warn(String message) => context.err.writeln('geas: $message');
 }
-
-/// The request never got an answer: offline, DNS, TLS or a dropped
-/// connection.
-bool isNetworkError(Object e) => e is IOException || e is http.ClientException;
 
 /// [e] as a sentence for the user.
 String describeError(Object e) => switch (e) {

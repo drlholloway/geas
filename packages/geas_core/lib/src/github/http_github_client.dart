@@ -1,8 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
 import 'github_client.dart';
+
+/// The request never got an answer: offline, DNS, TLS or a dropped
+/// connection.
+bool isNetworkError(Object e) => e is IOException || e is http.ClientException;
 
 /// [GitHubClient] over the GitHub REST API, authenticated with a personal
 /// access token.

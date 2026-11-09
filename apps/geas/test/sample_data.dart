@@ -1,8 +1,7 @@
+import 'package:geas/state/store.dart';
 import 'package:geas_core/geas_core.dart';
 
-import 'store.dart';
-
-/// Tasks to look at until the app syncs with the data repo. Due dates are
+/// Tasks for widget tests, pushed to the fake data repo. Due dates are
 /// relative to [now] so every section has something in it.
 TaskStore sampleStore(DateTime now) {
   final today = LocalDate.of(now);

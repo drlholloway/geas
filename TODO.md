@@ -99,12 +99,13 @@ The Git Data API refuses writes to an empty repo, so `geas init` creates
 - [ ] Fine-grained token: only `geas-data`, Contents read/write
 - [x] Pub workspace mirroring FretboardTrainer: root `pubspec.yaml`
       workspace, `packages/geas_core`, `apps/geas_cli`
-- [ ] `apps/geas` via
+- [x] `apps/geas` via
       `flutter create --org dev.laneholloway --platforms=android,macos,linux`,
       added to the workspace and to `just analyze` / `just test`
 - [x] `analysis_options.yaml`, `justfile`, Dart entries in `.gitignore`
 - [x] Install `just` (`brew install just`)
-- [x] GitHub Actions: analyze and test on push to main and on PRs
+- [x] GitHub Actions: analyze and test on push to main and on PRs, plus
+      Linux release and Android debug builds
 
 ## Phase 1: Core model and format (`geas_core`)
 
@@ -164,18 +165,21 @@ end to end.
 - [ ] First run and settings: data repo, token (`flutter_secure_storage`),
       device name. Calls `initDataRepo` once the repo and token are entered,
       like `geas init`
-- [ ] Sidebar: Inbox, Today, Next 7 days, lists, tags
-- [ ] Task list grouped into Overdue, Today, Upcoming and No date, with
+- [x] Sidebar: Inbox, Today, Next 7 days, lists, tags (on sample data in
+      memory until the app syncs)
+- [x] Task list grouped into Overdue, Today, Upcoming and No date, with
       priority marks, a quick-add field and a collapsed Completed section
 - [ ] Task detail: title, list, tags, due date with optional time, priority,
-      checklist, notes
+      checklist, notes (a read-only sheet with working checklist is in;
+      editing is not)
 - [ ] List and tag management
 - [ ] Conflicts view
 - [ ] Sync on launch, on resume, about 5 seconds after edits, and on demand;
       show the last sync status
-- [ ] macOS `com.apple.security.network.client` entitlement in both Debug
+- [x] macOS `com.apple.security.network.client` entitlement in both Debug
       and Release; Android `INTERNET` permission in the main manifest
-- [ ] Phone layout on Android, sidebar layout at desktop widths
+- [x] Phone layout on Android, sidebar layout at desktop widths (drawer
+      below 720 px)
 
 ## Phase 5: Packaging
 

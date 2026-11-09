@@ -3,18 +3,22 @@
 set shell := ["bash", "-cu"]
 export PATH := "/opt/homebrew/bin:" + env_var("PATH")
 
+app := "apps/geas"
+
 # fetch dependencies for the whole workspace
 get:
-    dart pub get
+    flutter pub get
 
 # static analysis everywhere
 analyze:
     dart analyze
+    cd {{app}} && flutter analyze
 
 # run every test suite
 test:
     cd packages/geas_core && dart test
     cd apps/geas_cli && dart test
+    cd {{app}} && flutter test
 
 format:
     dart format .
@@ -23,3 +27,12 @@ format:
 cli:
     mkdir -p build
     dart compile exe apps/geas_cli/bin/geas.dart -o build/geas
+
+run-macos:
+    cd {{app}} && flutter run -d macos
+
+run-android:
+    cd {{app}} && flutter run -d android
+
+run-linux:
+    cd {{app}} && flutter run -d linux

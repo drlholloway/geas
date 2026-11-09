@@ -1,0 +1,41 @@
+import 'package:geas_core/geas_core.dart';
+import 'package:go_router/go_router.dart';
+
+import '../features/shell/app_shell.dart';
+import '../features/tasks/task_list_screen.dart';
+import '../features/tasks/task_view.dart';
+
+/// One router per app instance (a global would keep its location across
+/// widget tests).
+GoRouter createRouter() => GoRouter(
+  initialLocation: '/list/$inboxId',
+  routes: [
+    ShellRoute(
+      builder: (context, state, child) => AppShell(child: child),
+      routes: [
+        GoRoute(
+          path: '/list/:id',
+          builder: (c, s) => TaskListScreen(
+            view: TaskView(ViewKind.list, s.pathParameters['id']!),
+          ),
+        ),
+        GoRoute(
+          path: '/today',
+          builder: (c, s) =>
+              const TaskListScreen(view: TaskView(ViewKind.today)),
+        ),
+        GoRoute(
+          path: '/week',
+          builder: (c, s) =>
+              const TaskListScreen(view: TaskView(ViewKind.week)),
+        ),
+        GoRoute(
+          path: '/tag/:tag',
+          builder: (c, s) => TaskListScreen(
+            view: TaskView(ViewKind.tag, s.pathParameters['tag']!),
+          ),
+        ),
+      ],
+    ),
+  ],
+);

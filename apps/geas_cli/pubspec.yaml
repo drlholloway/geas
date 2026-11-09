@@ -1,0 +1,16 @@
+name: geas_cli
+description: The geas command-line client.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+executables:
+  geas: geas
+dependencies:
+  args: ^2.7.0
+  geas_core:
+    path: ../../packages/geas_core
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.33.0

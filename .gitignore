@@ -12,4 +12,7 @@ Thumbs.db
 .env
 .env.*
 
-# Toolchain-specific entries get added once the stack is chosen.
+# Dart and Flutter
+.dart_tool/
+build/
+pubspec.lock

@@ -35,3 +35,38 @@ Uri newRepoUrl(RepoRef repo) => Uri.https('github.com', '/new', {
 
 /// The description setup gives a new data repo.
 const dataRepoDescription = 'Geas tasks';
+
+/// Why a token won't do for a data repo, worded as advice.
+class TokenProblem implements Exception {
+  const TokenProblem(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// Checks that the token behind [client] can push to its repo. Throws
+/// [TokenProblem] with advice when it can't; other errors, like a network
+/// failure, pass through.
+Future<RepoAccess> checkTokenAccess(GitHubClient client) async {
+  final repo = client.repo;
+  final RepoAccess access;
+  try {
+    access = await client.checkAccess();
+  } on GitHubException catch (e) {
+    throw switch (e.statusCode) {
+      401 => const TokenProblem(
+          'GitHub rejected the token. Copy it again, or create a new one.'),
+      404 => TokenProblem('The token can\'t see $repo. Check the name, and '
+          'on GitHub edit the token: under Repository access, choose "Only '
+          'select repositories" and add $repo.'),
+      _ => e,
+    };
+  }
+  if (!access.canWrite) {
+    throw TokenProblem('The token can read $repo but not write to it. On '
+        'GitHub, edit the token and set Contents to "Read and write".');
+  }
+  return access;
+}

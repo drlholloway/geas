@@ -10,20 +10,11 @@ import 'token_stores.dart';
 Future<RepoAccess> checkToken(
     GeasContext context, RepoRef repo, String token) async {
   try {
-    final access = await context.connect(repo, token).checkAccess();
-    if (!access.canWrite) {
-      throw CliException('The token can read $repo but not write to it. On '
-          'GitHub, edit the token and set Contents to "Read and write".');
-    }
-    return access;
+    return await checkTokenAccess(context.connect(repo, token));
+  } on TokenProblem catch (e) {
+    throw CliException(e.message);
   } on GitHubException catch (e) {
-    throw CliException(switch (e.statusCode) {
-      401 => 'GitHub rejected the token. Copy it again, or create a new one.',
-      404 => 'The token can\'t see $repo. Check the name, and on GitHub '
-          'edit the token: under Repository access, choose "Only select '
-          'repositories" and add $repo.',
-      _ => describeError(e),
-    });
+    throw CliException(describeError(e));
   }
 }
 

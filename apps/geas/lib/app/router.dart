@@ -1,6 +1,8 @@
 import 'package:geas_core/geas_core.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/settings/settings_screen.dart';
+import '../features/setup/setup_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/tasks/task_list_screen.dart';
 import '../features/tasks/task_view.dart';
@@ -35,7 +37,12 @@ GoRouter createRouter() => GoRouter(
             view: TaskView(ViewKind.tag, s.pathParameters['tag']!),
           ),
         ),
+        GoRoute(path: '/settings', builder: (c, s) => const SettingsScreen()),
       ],
+    ),
+    GoRoute(
+      path: '/settings/token',
+      builder: (c, s) => const SetupScreen(replaceToken: true),
     ),
   ],
 );

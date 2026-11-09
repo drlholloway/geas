@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../state/store.dart';
 import '../tasks/task_view.dart';
+import 'sync_status.dart';
 
 /// Below this width the sidebar moves into a drawer.
 const sidebarBreakpoint = 720.0;
@@ -84,27 +85,7 @@ class Sidebar extends ConsumerWidget {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.cloud_off,
-                  size: 16,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Sample data. Not synced yet.',
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SyncStatusBar(),
         ],
       ),
     );

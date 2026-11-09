@@ -224,13 +224,14 @@ end to end.
 
 ## Phase 4: App (`apps/geas`)
 
-- [ ] First run and settings: the same three steps as `geas setup` (device
+- [x] First run and settings: the same three steps as `geas setup` (device
       name, data repo, token), opening the `newRepoUrl` and `newTokenUrl`
-      forms, checking the token with `checkAccess`, storing it with
-      `flutter_secure_storage`, then `initDataRepo`. Renewing an expiring
-      token from settings
-- [x] Sidebar: Inbox, Today, Next 7 days, lists, tags (on sample data in
-      memory until the app syncs)
+      forms, checking the token with `checkTokenAccess`, storing it with
+      `flutter_secure_storage`, then `initDataRepo`. Replacing an expiring
+      token and disconnecting from settings. On macOS the token goes in the
+      legacy Keychain (`usesDataProtectionKeychain: false`), so the app
+      needs no Keychain Sharing entitlement or provisioning profile
+- [x] Sidebar: Inbox, Today, Next 7 days, lists, tags
 - [x] Task list grouped into Overdue, Today, Upcoming and No date, with
       priority marks, a quick-add field and a collapsed Completed section
 - [ ] Task detail: title, list, tags, due date with optional time, priority,
@@ -238,8 +239,9 @@ end to end.
       editing is not)
 - [ ] List and tag management
 - [ ] Conflicts view
-- [ ] Sync on launch, on resume, about 5 seconds after edits, and on demand;
-      show the last sync status
+- [x] Sync on launch, on resume, 5 seconds after edits, and on demand;
+      the last sync status, conflicts and an expiring token show at the
+      foot of the sidebar
 - [x] macOS `com.apple.security.network.client` entitlement in both Debug
       and Release; Android `INTERNET` permission in the main manifest
 - [x] Phone layout on Android, sidebar layout at desktop widths (drawer
@@ -288,7 +290,8 @@ Orders and packages:
 - [ ] Android: signed release APK for sideloading
 - [ ] macOS: release `.app`
 - [ ] Linux: `Geas-<version>-x86_64.AppImage` plus `.zsync`, built in CI like
-      Sightings and Fretman
+      Sightings and Fretman. The token store needs `libsecret-1-0` at run
+      time (CI builds with `libsecret-1-dev`)
 - [ ] `CHANGELOG.md` and tagged releases
 
 ## Later

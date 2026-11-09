@@ -8,7 +8,9 @@ Plan and status. Check items off as they land; move anything cut from v1 to
 - **Platforms:** Android, macOS, Linux from one Flutter codebase, plus a
   simple Dart CLI.
 - **v1 scope:** lists, categorization (tags), due dates, priorities,
-  checklists. No reminders or recurrence yet.
+  checklists, an Eisenhower matrix view, and order and package tracking
+  (added 2026-11-09; these two matter most). No reminders or recurrence
+  yet.
 - **Data:** separate private repo `drlholloway/geas-data`, one Markdown file
   per task.
 - **Sync:** GitHub's REST Git Data API on every platform, no git client.
@@ -57,6 +59,24 @@ Rules:
 - Unknown frontmatter keys survive a parse and rewrite, so hand edits and
   newer app versions don't lose data.
 - The checklist is the Markdown checkboxes in the body.
+
+Order tracking is an optional `order` map in the task frontmatter. It is a
+new optional key, not a breaking change, so `format` stays 1 and older
+builds keep it as an unknown key:
+
+```yaml
+order:
+  vendor: Tayda
+  number: TE-1234567
+  url: https://www.taydaelectronics.com/sales/order/view/order_id/1234567/
+  status: shipped              # ordered | shipped | out-for-delivery |
+                               # delivered | problem | returned
+  packages:
+    - carrier: usps            # usps | ups | fedex | dhl | other
+      tracking: 9400111899223397846185
+      eta: 2026-11-14
+      status: in-transit       # optional, per package
+```
 
 ## Merge and sync
 
@@ -158,7 +178,7 @@ end to end.
       `HH:MM`
 - [ ] Token from `GEAS_TOKEN`, otherwise the macOS Keychain (`security`) or
       Linux `secret-tool`
-- [ ] `just cli` builds `build/geas` with `dart compile exe`
+- [x] `just cli` builds `build/geas` with `dart compile exe`
 
 ## Phase 4: App (`apps/geas`)
 
@@ -181,7 +201,42 @@ end to end.
 - [x] Phone layout on Android, sidebar layout at desktop widths (drawer
       below 720 px)
 
-## Phase 5: Packaging
+## Phase 5: Eisenhower matrix and order tracking
+
+Matrix:
+
+- [ ] Core: classify each open task as important or not and urgent or not
+      (see Open questions), with tests
+- [ ] App: a Matrix view in the sidebar with four quadrants: Do (urgent and
+      important), Schedule (important), Delegate (urgent) and Drop
+      (neither). It has a 2x2 grid at desktop widths and stacked or paged
+      quadrants on a phone, and dragging a task to another quadrant updates
+      its fields
+- [ ] Matrix filters: by list and tag, and whether to include tasks with no
+      due date
+- [ ] CLI: `geas matrix` prints the four quadrants
+
+Orders and packages:
+
+- [ ] Core: `Order` and `Package` models parsed from and written to the
+      `order` frontmatter map, round-tripping like the other fields
+- [ ] Core: carrier detection from the tracking number's shape (USPS, UPS
+      `1Z…`, FedEx, DHL) and a tracking-page URL for each carrier
+- [ ] Core: queries for open orders grouped by status, and arriving today
+      or this week by `eta`
+- [ ] App: an Orders view in the sidebar grouped into Ordered, Shipped, Out
+      for delivery, Problem and Delivered (collapsed), with vendor, order
+      number, carrier, ETA and buttons that open the tracking pages
+- [ ] App: an order section in task detail to set the vendor, order number
+      and status, and to add or remove packages (paste a tracking number to
+      add one)
+- [ ] Marking an order delivered offers to complete the task. A task with
+      packages still in transit shows that on its row
+- [ ] CLI: `geas order <id> --vendor --number --status`,
+      `geas track <id> <tracking-number> [--carrier]` and `geas orders`
+- [ ] Packages arriving today show in the Today view
+
+## Phase 6: Packaging
 
 - [ ] Android: signed release APK for sideloading
 - [ ] macOS: release `.app`
@@ -203,8 +258,25 @@ end to end.
 - Folders that group lists
 - Manual ordering within a list
 - OAuth device flow instead of a pasted token
+- Live package status pulled from carriers or a tracking aggregator (see
+  Open questions), filling in `status` and `eta` automatically
+- Adding orders from shipping-confirmation emails
 
 ## Open questions
+
+- **What makes a task important or urgent in the matrix?** Recommendation:
+  important means high or medium priority. Urgent means overdue or due
+  within 2 days, with the number of days set in `geas.yaml`. Dragging
+  across the important line changes the priority (to high, or to low).
+  Dragging across the urgent line sets the due date to today, or clears
+  it. The alternative is TickTick's approach, where each quadrant is just a
+  priority level. That's simpler, but it ignores due dates.
+- **Live package tracking.** With no server, devices would call carrier
+  APIs directly. UPS, FedEx and USPS each need a developer account and
+  OAuth keys; an aggregator such as 17TRACK or AfterShip needs one key but
+  costs money above a free tier. Recommendation for v1: status is set by
+  hand and the app links to each carrier's tracking page. Live lookups go
+  in Later, with the key stored like the GitHub token.
 
 - "Categorization" is planned as tags. If it should mean folders that group
   lists, pull that up from Later.

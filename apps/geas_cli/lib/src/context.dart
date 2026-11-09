@@ -1,5 +1,7 @@
 import 'package:geas_core/geas_core.dart';
 
+import 'token_stores.dart';
+
 /// Opens a [GitHubClient] on [repo] with [token].
 typedef Connect = GitHubClient Function(RepoRef repo, String token);
 
@@ -11,6 +13,9 @@ class GeasContext {
     required this.promptToken,
     required this.editFile,
     required this.confirm,
+    required this.ask,
+    required this.openUrl,
+    required this.run,
     required this.configDir,
     required this.dataDir,
     required this.hostname,
@@ -36,6 +41,15 @@ class GeasContext {
 
   /// Asks a yes-or-no question; false if there's no terminal.
   final bool Function(String question) confirm;
+
+  /// Asks for a line of text, showing [prompt]; null if there's no terminal.
+  final String? Function(String prompt) ask;
+
+  /// Opens [url] in the browser; false if that failed.
+  final Future<bool> Function(String url) openUrl;
+
+  /// Runs other programs, such as `gh`.
+  final RunProcess run;
 
   /// Holds `config.yaml`.
   final String configDir;

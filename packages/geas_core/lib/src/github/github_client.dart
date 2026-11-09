@@ -42,6 +42,17 @@ class NotFastForwardException extends GitHubException {
   const NotFastForwardException(String message) : super(422, message);
 }
 
+/// What a token can do in a repository.
+class RepoAccess {
+  const RepoAccess({required this.canWrite, this.tokenExpires});
+
+  /// Whether it can push, which sync needs.
+  final bool canWrite;
+
+  /// When the token expires, or null if it doesn't or GitHub didn't say.
+  final DateTime? tokenExpires;
+}
+
 /// The slice of the GitHub REST API that Geas uses, bound to one repository
 /// and one branch.
 ///
@@ -52,6 +63,10 @@ abstract interface class GitHubClient {
 
   /// The branch that holds the data, normally `main`.
   String get branch;
+
+  /// What the token can do in [repo]. Throws [GitHubException] with status
+  /// 404 if the repo doesn't exist or the token can't see it.
+  Future<RepoAccess> checkAccess();
 
   /// The commit at the tip of [branch], or null if the repository is empty
   /// or has no such branch.

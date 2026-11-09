@@ -8,6 +8,7 @@ import 'src/context.dart';
 import 'src/init_command.dart';
 import 'src/list_commands.dart';
 import 'src/session.dart';
+import 'src/setup_command.dart';
 import 'src/task_commands.dart';
 import 'src/token_stores.dart';
 
@@ -26,6 +27,7 @@ Future<int> runGeas(List<String> args, GeasContext context) async {
             help: 'Don\'t sync; work on the local copy. Changes go out with '
                 'the next sync.');
   for (final command in [
+    SetupCommand(context),
     InitCommand(context),
     AddCommand(context),
     LsCommand(context),

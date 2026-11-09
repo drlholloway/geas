@@ -27,6 +27,15 @@ Plan and status. Check items off as they land; move anything cut from v1 to
   color.
 - **Package tracking (2026-11-09):** status is set by hand. The app and CLI
   link to each carrier's tracking page; live lookups are in Later.
+- **Setup (2026-11-09):** a guided wizard, the same in the CLI
+  (`geas setup`) and the app's first run. It creates the private data repo
+  (with `gh` if installed, otherwise a filled-in github.com/new form), then
+  opens GitHub's fine-grained token form filled in with the name,
+  Contents read and write, and a 366-day expiry. GitHub has no API for
+  creating these tokens and can't pre-select the repo, so picking the repo
+  and clicking Generate stay manual. Each device gets its own token, which
+  is checked before it's saved; Geas warns two weeks before it expires.
+  Signing in through a registered GitHub App is in Later.
 
 ## Data format
 
@@ -205,13 +214,21 @@ end to end.
       so the token never appears in the process list) or Linux `secret-tool`
 - [x] Tried live against `geas-data` (2026-11-09): init, add, ls, show,
       edit, done, rm, sync
+- [x] `geas setup`: the guided wizard (see Decisions). Links come from
+      `newRepoUrl` and `newTokenUrl` in core, and the token check from
+      `GitHubClient.checkAccess`, so the app reuses them. `geas init` stays
+      for scripts with `GEAS_TOKEN`
+- [x] Token expiry reminder two weeks ahead, from GitHub's
+      `GitHub-Authentication-Token-Expiration` header
 - [x] `just cli` builds `build/geas` with `dart compile exe`
 
 ## Phase 4: App (`apps/geas`)
 
-- [ ] First run and settings: data repo, token (`flutter_secure_storage`),
-      device name. Calls `initDataRepo` once the repo and token are entered,
-      like `geas init`
+- [ ] First run and settings: the same three steps as `geas setup` (device
+      name, data repo, token), opening the `newRepoUrl` and `newTokenUrl`
+      forms, checking the token with `checkAccess`, storing it with
+      `flutter_secure_storage`, then `initDataRepo`. Renewing an expiring
+      token from settings
 - [x] Sidebar: Inbox, Today, Next 7 days, lists, tags (on sample data in
       memory until the app syncs)
 - [x] Task list grouped into Overdue, Today, Upcoming and No date, with
@@ -283,6 +300,8 @@ Orders and packages:
 - Quick-add syntax shared by app and CLI (`#tag`, `^list`, `!high`,
   `tomorrow`)
 - Calendar view
+- Sign in through a registered Geas GitHub App (device flow): no token to
+  copy, but an app to register and tokens to refresh every 8 hours
 - Habits and Pomodoro
 - Search and saved filters
 - Folders that group lists

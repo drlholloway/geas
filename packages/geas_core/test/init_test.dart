@@ -29,14 +29,14 @@ void main() {
 
   test('leaves an initialized repo alone', () async {
     final github = FakeGitHubClient();
-    github.files[repoConfigPath] = utf8.encode('format: 1\nnote: hand edit\n');
+    github.push({repoConfigPath: utf8.encode('format: 1\nnote: hand edit\n')});
 
     expect(await initDataRepo(github), InitOutcome.alreadyInitialized);
     expect(
       utf8.decode(github.files[repoConfigPath]!),
       'format: 1\nnote: hand edit\n',
     );
-    expect(github.commits, isEmpty);
+    expect(github.commits, ['push']);
   });
 
   test('running twice writes once', () async {
@@ -48,7 +48,7 @@ void main() {
 
   test('adds geas.yaml to a repo that has other files', () async {
     final github = FakeGitHubClient();
-    github.files['README.md'] = utf8.encode('# My tasks\n');
+    github.push({'README.md': utf8.encode('# My tasks\n')});
 
     expect(await initDataRepo(github), InitOutcome.created);
     expect(github.files.keys, containsAll(['README.md', repoConfigPath]));
@@ -56,7 +56,7 @@ void main() {
 
   test('refuses a repo from a newer format', () async {
     final github = FakeGitHubClient();
-    github.files[repoConfigPath] = utf8.encode('format: 2\n');
+    github.push({repoConfigPath: utf8.encode('format: 2\n')});
 
     await expectLater(
       initDataRepo(github),
@@ -67,7 +67,7 @@ void main() {
 
   test('refuses a geas.yaml it cannot parse', () async {
     final github = FakeGitHubClient();
-    github.files[repoConfigPath] = utf8.encode('just some text\n');
+    github.push({repoConfigPath: utf8.encode('just some text\n')});
 
     await expectLater(initDataRepo(github), throwsFormatException);
   });

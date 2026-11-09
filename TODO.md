@@ -153,19 +153,26 @@ The Git Data API refuses writes to an empty repo, so `geas init` creates
 
 ## Phase 2: Sync (`geas_core`)
 
-- [ ] Local store: `working/` and `base/` directories, base SHA, in-memory
-      index, atomic writes
-- [ ] Three-way task merge, line merge for the body, conflict records, with
-      thorough unit tests
+- [x] Local store: `working/` and `base/` directories, base SHA, in-memory
+      index, atomic writes (`DirectoryStore`, `Workspace`; `MemoryStore` for
+      tests)
+- [x] Three-way task merge, line merge for the body, conflict records, with
+      thorough unit tests. Frontmatter merges key by key, unknown keys
+      included. One-for-one line changes merge line by line, so checking
+      off neighboring checklist items on two devices doesn't conflict
 - [x] Repo bootstrap: `initDataRepo` writes `geas.yaml` (`format: 1`) through
       the Contents API, leaves an initialized repo alone, tolerates another
       device initializing first, and refuses a newer format
-- [ ] GitHub client on `package:http` for refs, trees, blobs and commits
-      (Contents read and create are done), behind the `GitHubClient`
-      interface with `FakeGitHubClient` for tests
-- [ ] Sync loop with retry on non-fast-forward, tested by simulating two
-      devices against the fake
-- [ ] Token storage interface, implemented per platform by the app and CLI
+- [x] GitHub client on `package:http` for refs, trees, blobs and commits,
+      behind the `GitHubClient` interface. `FakeGitHubClient` is an
+      in-memory git server (blobs, trees, commits, fast-forward-only branch)
+- [x] Sync loop with retry on non-fast-forward, tested by simulating two
+      devices against the fake. Only blobs whose SHA differs from base are
+      downloaded; edits made during a sync are kept for the next one
+- [ ] Try sync against the real `geas-data` repo (needs the token)
+- [x] Token storage interface (`TokenStore`); the per-platform
+      implementations land with the CLI (Keychain, `secret-tool`) and the
+      app (`flutter_secure_storage`)
 
 ## Phase 3: CLI (`apps/geas_cli`)
 

@@ -109,4 +109,120 @@ void main() {
       );
     });
   });
+
+  group('Git Data API', () {
+    test('branchHead reads the ref', () async {
+      late http.Request seen;
+      final client = _client((request) async {
+        seen = request;
+        return http.Response('{"object":{"sha":"c0ffee"}}', 200);
+      });
+      expect(await client.branchHead(), 'c0ffee');
+      expect(seen.url.path, '/repos/drl/geas-data/git/ref/heads/main');
+    });
+
+    test('branchHead is null for an empty repo', () async {
+      final client = _client((_) async =>
+          http.Response('{"message":"Git Repository is empty."}', 409));
+      expect(await client.branchHead(), isNull);
+    });
+
+    test('branchHead throws when the repo is missing', () async {
+      final client =
+          _client((_) async => http.Response('{"message":"Not Found"}', 404));
+      await expectLater(client.branchHead(), throwsA(isA<GitHubException>()));
+    });
+
+    test('commitTree and readTree', () async {
+      final client = _client((request) async {
+        if (request.url.path.endsWith('/git/commits/c1')) {
+          return http.Response('{"tree":{"sha":"t1"}}', 200);
+        }
+        expect(request.url.path, endsWith('/git/trees/t1'));
+        expect(request.url.queryParameters['recursive'], '1');
+        return http.Response(
+            jsonEncode({
+              'truncated': false,
+              'tree': [
+                {'path': 'tasks', 'type': 'tree', 'sha': 'd1'},
+                {'path': 'tasks/a.md', 'type': 'blob', 'sha': 'b1'},
+                {'path': 'geas.yaml', 'type': 'blob', 'sha': 'b2'},
+              ],
+            }),
+            200);
+      });
+      expect(await client.commitTree('c1'), 't1');
+      expect(
+          await client.readTree('t1'), {'tasks/a.md': 'b1', 'geas.yaml': 'b2'});
+    });
+
+    test('readTree refuses a truncated listing', () async {
+      final client = _client(
+          (_) async => http.Response('{"truncated":true,"tree":[]}', 200));
+      await expectLater(client.readTree('t'), throwsA(isA<GitHubException>()));
+    });
+
+    test('readBlob fetches raw bytes', () async {
+      late http.Request seen;
+      final client = _client((request) async {
+        seen = request;
+        return http.Response('format: 1\n', 200);
+      });
+      expect(utf8.decode(await client.readBlob('b1')), 'format: 1\n');
+      expect(seen.headers['Accept'], 'application/vnd.github.raw+json');
+    });
+
+    test('createBlob, createTree and createCommit post JSON', () async {
+      final bodies = <String, Map<String, Object?>>{};
+      final client = _client((request) async {
+        expect(request.method, 'POST');
+        final kind = request.url.pathSegments.last;
+        bodies[kind] = jsonDecode(request.body) as Map<String, Object?>;
+        return http.Response('{"sha":"$kind-sha"}', 201);
+      });
+
+      expect(await client.createBlob(utf8.encode('hi')), 'blobs-sha');
+      expect(bodies['blobs'],
+          {'content': base64Encode(utf8.encode('hi')), 'encoding': 'base64'});
+
+      expect(await client.createTree('base', {'a.md': 'b1', 'gone.md': null}),
+          'trees-sha');
+      expect(bodies['trees'], {
+        'base_tree': 'base',
+        'tree': [
+          {'path': 'a.md', 'mode': '100644', 'type': 'blob', 'sha': 'b1'},
+          {'path': 'gone.md', 'mode': '100644', 'type': 'blob', 'sha': null},
+        ],
+      });
+
+      expect(
+          await client.createCommit(
+              message: 'sync(mac): 1 added', tree: 't', parents: ['p']),
+          'commits-sha');
+      expect(bodies['commits'], {
+        'message': 'sync(mac): 1 added',
+        'tree': 't',
+        'parents': ['p']
+      });
+    });
+
+    test('updateBranch patches without force', () async {
+      late http.Request seen;
+      final client = _client((request) async {
+        seen = request;
+        return http.Response('{}', 200);
+      });
+      await client.updateBranch('c2');
+      expect(seen.method, 'PATCH');
+      expect(seen.url.path, '/repos/drl/geas-data/git/refs/heads/main');
+      expect(jsonDecode(seen.body), {'sha': 'c2', 'force': false});
+    });
+
+    test('updateBranch reports a lost race', () async {
+      final client = _client((_) async =>
+          http.Response('{"message":"Update is not a fast forward"}', 422));
+      await expectLater(
+          client.updateBranch('c2'), throwsA(isA<NotFastForwardException>()));
+    });
+  });
 }

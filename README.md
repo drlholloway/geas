@@ -17,13 +17,19 @@ skeleton on sample data. See `TODO.md` for the plan.
 
 ```sh
 just cli                                # builds build/geas
-build/geas init drlholloway/geas-data   # asks for the token, stores it
+build/geas setup                        # walks through repo, token, device
 build/geas add "Order 1N914s" -l pedals -t tayda -d "fri 5pm" -p high
 build/geas ls --today
 build/geas done S13H                    # ids are short suffixes from ls
 build/geas edit S13H                    # the Markdown file in $EDITOR
 build/geas --help
 ```
+
+`geas setup` creates the private data repo (using `gh` if it's installed),
+opens GitHub's token form with everything filled in except the repo, checks
+the token you paste, and stores it in the Keychain or Secret Service. Run it
+on each device, and again to replace a token before it expires (Geas
+reminds you two weeks ahead).
 
 Every command syncs with GitHub first and pushes what it changed;
 `--offline` works on the local copy, and the next sync sends it.

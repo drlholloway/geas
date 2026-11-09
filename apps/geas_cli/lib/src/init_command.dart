@@ -2,7 +2,7 @@ import 'package:geas_core/geas_core.dart';
 
 import 'command.dart';
 import 'config.dart';
-import 'token_stores.dart';
+import 'connect_repo.dart';
 
 class InitCommand extends GeasCommand {
   InitCommand(super.context) {
@@ -15,9 +15,9 @@ class InitCommand extends GeasCommand {
 
   @override
   final description =
-      'Set up a GitHub repo as the Geas data repo, writing geas.yaml if it '
-      'has none, and make it this device\'s repo. Safe to run again, and on '
-      'every device.';
+      'Use an existing repo and token: write geas.yaml if the repo has none '
+      'and make it this device\'s repo. For scripts; `geas setup` walks you '
+      'through everything.';
 
   @override
   String get invocation => 'geas init [<owner/repo>] [--device <name>]';
@@ -47,35 +47,18 @@ class InitCommand extends GeasCommand {
       entered = true;
     }
     if (token == null || token.isEmpty) {
-      usageException('No GitHub token. Set GEAS_TOKEN, or run this in a '
-          'terminal to enter one.');
+      usageException('No GitHub token. Set GEAS_TOKEN, or run `geas setup` '
+          'in a terminal.');
     }
 
-    final outcome = await initDataRepo(context.connect(repo, token));
-    out.writeln(switch (outcome) {
-      InitOutcome.created => 'Initialized $repo: wrote $repoConfigPath.',
-      InitOutcome.alreadyInitialized => '$repo is already a Geas data repo.',
-    });
-
-    final device = argResults!['device'] as String? ??
-        (saved?.repo == repo ? saved!.device : context.hostname);
-    await CliConfig(repo: repo, device: device).save(context.configDir);
-    if (entered) {
-      try {
-        await context.tokens.write(repo, token);
-        out.writeln('Stored the token.');
-      } on TokenStoreException catch (e) {
-        warn('$e Set GEAS_TOKEN to sync.');
-      }
-    }
-
-    final session = await openSession();
-    final result = await session.sync(token: token);
-    await session.reload();
-    final open = session.workspace.tasks.where((t) => !t.isCompleted).length;
-    out.writeln('This device is "$device". Synced: $open open '
-        '${open == 1 ? 'task' : 'tasks'}'
-        '${result.pulled > 0 ? ', ${result.pulled} files pulled' : ''}.');
+    await connectRepo(
+      context,
+      repo: repo,
+      token: token,
+      device: argResults!['device'] as String? ??
+          (saved?.repo == repo ? saved!.device : context.hostname),
+      store: entered,
+    );
     return 0;
   }
 }

@@ -88,6 +88,14 @@ class FakeGitHubClient implements GitHubClient {
     push({path: content}, message: message);
   }
 
+  /// What [checkAccess] reports; set [access] to null for a repo the token
+  /// can't see.
+  RepoAccess? access = const RepoAccess(canWrite: true);
+
+  @override
+  Future<RepoAccess> checkAccess() async =>
+      access ?? (throw GitHubException(404, 'Repository $repo not found.'));
+
   @override
   Future<String?> branchHead() async => _head;
 

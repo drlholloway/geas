@@ -225,4 +225,44 @@ void main() {
           client.updateBranch('c2'), throwsA(isA<NotFastForwardException>()));
     });
   });
+
+  group('checkAccess', () {
+    test('reads push permission and the token expiry', () async {
+      final client = _client((request) async {
+        expect(request.url.path, '/repos/drl/geas-data');
+        return http.Response('{"permissions":{"pull":true,"push":true}}', 200,
+            headers: {
+              'github-authentication-token-expiration':
+                  '2027-11-10 08:00:00 -0800',
+            });
+      });
+      final access = await client.checkAccess();
+      expect(access.canWrite, isTrue);
+      expect(access.tokenExpires, DateTime.utc(2027, 11, 10, 16));
+    });
+
+    test('a read-only token cannot write', () async {
+      final client = _client((_) async =>
+          http.Response('{"permissions":{"pull":true,"push":false}}', 200));
+      final access = await client.checkAccess();
+      expect(access.canWrite, isFalse);
+      expect(access.tokenExpires, isNull);
+    });
+
+    test('a repo the token cannot see is a 404', () async {
+      final client =
+          _client((_) async => http.Response('{"message":"Not Found"}', 404));
+      await expectLater(
+          client.checkAccess(),
+          throwsA(isA<GitHubException>()
+              .having((e) => e.statusCode, 'statusCode', 404)));
+    });
+  });
+
+  test('parseTokenExpiration', () {
+    expect(parseTokenExpiration('2027-11-10 00:00:00 UTC'),
+        DateTime.utc(2027, 11, 10));
+    expect(parseTokenExpiration(null), isNull);
+    expect(parseTokenExpiration('soon'), isNull);
+  });
 }

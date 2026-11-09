@@ -70,6 +70,19 @@ class HttpGitHubClient implements GitHubClient {
   }
 
   @override
+  Future<RepoAccess> checkAccess() async {
+    final response = await _http.get(_uri(''), headers: _headers());
+    if (response.statusCode == 404) throw _notFound();
+    if (response.statusCode != 200) throw _error(response);
+    final permissions = _json(response)['permissions'];
+    return RepoAccess(
+      canWrite: permissions is Map && permissions['push'] == true,
+      tokenExpires: parseTokenExpiration(
+          response.headers['github-authentication-token-expiration']),
+    );
+  }
+
+  @override
   Future<String?> branchHead() async {
     final response =
         await _http.get(_uri('/git/ref/heads/$branch'), headers: _headers());
@@ -184,14 +197,14 @@ class HttpGitHubClient implements GitHubClient {
 
   Future<void> _checkRepo() async {
     final response = await _http.get(_uri(''), headers: _headers());
-    if (response.statusCode == 404) {
-      throw GitHubException(
+    if (response.statusCode == 404) throw _notFound();
+    if (response.statusCode != 200) throw _error(response);
+  }
+
+  GitHubException _notFound() => GitHubException(
         404,
         'Repository $repo not found, or the token has no access to it.',
       );
-    }
-    if (response.statusCode != 200) throw _error(response);
-  }
 
   Map<String, dynamic> _json(http.Response response) =>
       jsonDecode(response.body) as Map<String, dynamic>;
@@ -208,4 +221,18 @@ class HttpGitHubClient implements GitHubClient {
     }
     return GitHubException(response.statusCode, message);
   }
+}
+
+final _expirationPattern =
+    RegExp(r'^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) (UTC|[+-]\d{4})$');
+
+/// Parses GitHub's `GitHub-Authentication-Token-Expiration` header, such as
+/// `2027-11-10 00:00:00 UTC` or `2027-11-10 00:00:00 -0800`; null if
+/// [header] is missing or in another form.
+DateTime? parseTokenExpiration(String? header) {
+  final m = _expirationPattern.firstMatch(header?.trim() ?? '');
+  if (m == null) return null;
+  final zone =
+      m[3] == 'UTC' ? 'Z' : '${m[3]!.substring(0, 3)}:${m[3]!.substring(3)}';
+  return DateTime.tryParse('${m[1]}T${m[2]}$zone')?.toUtc();
 }

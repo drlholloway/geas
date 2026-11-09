@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import 'config.dart';
 import 'context.dart';
+import 'output.dart';
 
 /// One command's view of the data repo: the config, the local copy, and
 /// syncing it.
@@ -21,6 +22,7 @@ class Session {
       throw const CliException(
           'No data repo yet. Run `geas init <owner/repo>` first.');
     }
+    _warnIfTokenExpiring(context, config);
     return Session._(context, config, offline: offline);
   }
 
@@ -154,3 +156,20 @@ String _hint(int statusCode) => switch (statusCode) {
       403 => ' The token needs Contents read and write access to the repo.',
       _ => '',
     };
+
+/// Warns on stderr if the stored token expires within two weeks.
+void _warnIfTokenExpiring(GeasContext context, CliConfig config) {
+  final expires = config.tokenExpires;
+  if (expires == null || context.envToken != null) return;
+  final now = context.clock();
+  final when = formatDate(LocalDate.of(expires.toLocal()));
+  if (!expires.isAfter(now)) {
+    context.err.writeln('geas: The token for ${config.repo} expired $when. '
+        'Run `geas setup` to make a new one.');
+  } else if (expires.difference(now) < const Duration(days: 14)) {
+    final days = expires.difference(now).inDays;
+    context.err.writeln('geas: The token for ${config.repo} expires '
+        '${days == 0 ? 'today' : 'in $days ${days == 1 ? 'day' : 'days'}'} '
+        '($when). Run `geas setup` to replace it.');
+  }
+}

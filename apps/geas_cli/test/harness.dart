@@ -29,11 +29,28 @@ class Harness {
   /// The tokens each connection was opened with.
   final connections = <String>[];
 
+  /// Runs on each connection, before it's returned.
+  void Function(String token)? onConnect;
+
   /// Monday, November 9, 2026, at noon here.
   DateTime now = DateTime(2026, 11, 9, 12);
 
   Future<bool> Function(String path) editor = (_) async => true;
   bool confirmAnswer = false;
+
+  /// Answers to [GeasContext.ask], in order; null once they run out.
+  final answers = <String>[];
+
+  /// Answers to the hidden token prompt after [typedToken], in order.
+  final moreTokens = <String>[];
+
+  /// Every prompt shown by ask and confirm.
+  final prompts = <String>[];
+  final openedUrls = <String>[];
+
+  /// Handles `gh` and other programs; by default there's no `gh`.
+  Future<ProcessResult> Function(String exe, List<String> args) programs =
+      (exe, args) async => throw ProcessException(exe, args, 'not found', 2);
 
   final out = StringBuffer();
   final err = StringBuffer();
@@ -50,13 +67,30 @@ class Harness {
       GeasContext(
         connect: (r, token) {
           connections.add(token);
+          onConnect?.call(token);
           return client ?? github;
         },
         tokens: tokens,
         envToken: envToken,
-        promptToken: () => typedToken,
+        promptToken: () {
+          final token = typedToken;
+          typedToken = moreTokens.isEmpty ? null : moreTokens.removeAt(0);
+          return token;
+        },
         editFile: (path) => editor(path),
-        confirm: (_) => confirmAnswer,
+        confirm: (question) {
+          prompts.add(question);
+          return confirmAnswer;
+        },
+        ask: (prompt) {
+          prompts.add(prompt);
+          return answers.isEmpty ? null : answers.removeAt(0);
+        },
+        openUrl: (url) async {
+          openedUrls.add(url);
+          return true;
+        },
+        run: (exe, args, {stdin}) => programs(exe, args),
         configDir: configDir,
         dataDir: dataDir,
         hostname: 'testbox',

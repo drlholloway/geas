@@ -12,6 +12,7 @@ export 'src/due_input.dart';
 export 'src/github/git_hash.dart';
 export 'src/github/github_client.dart';
 export 'src/github/http_github_client.dart';
+export 'src/github/setup_links.dart';
 export 'src/init.dart';
 export 'src/local_date.dart';
 export 'src/priority.dart';

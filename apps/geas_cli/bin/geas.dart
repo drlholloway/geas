@@ -21,6 +21,9 @@ Future<void> main(List<String> args) async {
       promptToken: _promptToken,
       editFile: _editFile,
       confirm: _confirm,
+      ask: _ask,
+      openUrl: _openUrl,
+      run: runProcess,
       configDir:
           p.join(env['XDG_CONFIG_HOME'] ?? p.join(home, '.config'), 'geas'),
       dataDir: p.join(
@@ -71,4 +74,22 @@ bool _confirm(String question) {
   stdout.write('$question [Y/n] ');
   final answer = stdin.readLineSync()?.trim().toLowerCase() ?? 'n';
   return answer.isEmpty || answer.startsWith('y');
+}
+
+String? _ask(String prompt) {
+  if (!stdin.hasTerminal) return null;
+  stdout.write(prompt);
+  final line = stdin.readLineSync();
+  if (line == null) stdout.writeln();
+  return line?.trim();
+}
+
+/// `open` on macOS, `xdg-open` on Linux.
+Future<bool> _openUrl(String url) async {
+  final opener = Platform.isMacOS ? 'open' : 'xdg-open';
+  try {
+    return (await Process.run(opener, [url])).exitCode == 0;
+  } on ProcessException {
+    return false;
+  }
 }

@@ -19,6 +19,14 @@ Plan and status. Check items off as they land; move anything cut from v1 to
   index. Move to SQLite only if this gets slow.
 - **Auth:** fine-grained personal access token limited to `geas-data`, with
   Contents read/write.
+- **Eisenhower matrix (2026-11-09):** each quadrant is one priority level,
+  as in TickTick: high is Do, medium is Schedule, low is Delegate and none
+  is Drop. Dragging a task to another quadrant sets its priority. Due dates
+  don't move tasks between quadrants, but a task close to its due date is
+  shown bold and in a warning color, and an overdue task in the error
+  color.
+- **Package tracking (2026-11-09):** status is set by hand. The app and CLI
+  link to each carrier's tracking page; live lookups are in Later.
 
 ## Data format
 
@@ -205,13 +213,16 @@ end to end.
 
 Matrix:
 
-- [ ] Core: classify each open task as important or not and urgent or not
-      (see Open questions), with tests
-- [ ] App: a Matrix view in the sidebar with four quadrants: Do (urgent and
-      important), Schedule (important), Delegate (urgent) and Drop
-      (neither). It has a 2x2 grid at desktop widths and stacked or paged
-      quadrants on a phone, and dragging a task to another quadrant updates
-      its fields
+- [ ] Core: quadrant for a priority and back (high: Do, medium: Schedule,
+      low: Delegate, none: Drop), and a due-date warning level for each open
+      task (none, approaching, overdue), with tests
+- [ ] Warning window: a task is approaching when it's due within 2 days,
+      the number of days set by an optional `warn_days` in `geas.yaml`
+- [ ] App: a Matrix view in the sidebar with the four quadrants, in a 2x2
+      grid at desktop widths and stacked or paged on a phone. Dragging a
+      task to another quadrant sets its priority
+- [ ] App: approaching tasks are bold and in a warning color, overdue ones in
+      the error color, in the matrix and in every other task list
 - [ ] Matrix filters: by list and tag, and whether to include tasks with no
       due date
 - [ ] CLI: `geas matrix` prints the four quadrants
@@ -258,25 +269,15 @@ Orders and packages:
 - Folders that group lists
 - Manual ordering within a list
 - OAuth device flow instead of a pasted token
-- Live package status pulled from carriers or a tracking aggregator (see
-  Open questions), filling in `status` and `eta` automatically
+- Live package status pulled from carriers or a tracking aggregator,
+  filling in `status` and `eta` automatically. With no server, each device
+  would call the APIs itself: UPS, FedEx and USPS each need a developer
+  account and OAuth keys, and an aggregator such as 17TRACK or AfterShip
+  needs one key but costs money above a free tier. The key would be stored
+  like the GitHub token
 - Adding orders from shipping-confirmation emails
 
 ## Open questions
-
-- **What makes a task important or urgent in the matrix?** Recommendation:
-  important means high or medium priority. Urgent means overdue or due
-  within 2 days, with the number of days set in `geas.yaml`. Dragging
-  across the important line changes the priority (to high, or to low).
-  Dragging across the urgent line sets the due date to today, or clears
-  it. The alternative is TickTick's approach, where each quadrant is just a
-  priority level. That's simpler, but it ignores due dates.
-- **Live package tracking.** With no server, devices would call carrier
-  APIs directly. UPS, FedEx and USPS each need a developer account and
-  OAuth keys; an aggregator such as 17TRACK or AfterShip needs one key but
-  costs money above a free tier. Recommendation for v1: status is set by
-  hand and the app links to each carrier's tracking page. Live lookups go
-  in Later, with the key stored like the GitHub token.
 
 - "Categorization" is planned as tags. If it should mean folders that group
   lists, pull that up from Later.

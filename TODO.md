@@ -169,7 +169,9 @@ The Git Data API refuses writes to an empty repo, so `geas init` creates
 - [x] Sync loop with retry on non-fast-forward, tested by simulating two
       devices against the fake. Only blobs whose SHA differs from base are
       downloaded; edits made during a sync are kept for the next one
-- [ ] Try sync against the real `geas-data` repo (needs the token)
+- [x] Try sync against the real `geas-data` repo (2026-11-09, with the `gh`
+      login token): init, two simulated devices merging concurrent edits,
+      a delete, and a stale push refused as non-fast-forward
 - [x] Token storage interface (`TokenStore`); the per-platform
       implementations land with the CLI (Keychain, `secret-tool`) and the
       app (`flutter_secure_storage`)

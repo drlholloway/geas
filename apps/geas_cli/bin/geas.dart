@@ -2,21 +2,39 @@ import 'dart:io';
 
 import 'package:geas_cli/geas_cli.dart';
 import 'package:geas_core/geas_core.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
 
 Future<void> main(List<String> args) async {
+  final env = Platform.environment;
+  final home = env['HOME'] ?? '.';
+  // One client, closed at the end; an open keep-alive connection would hold
+  // the process up for its idle timeout.
+  final httpClient = http.Client();
   exitCode = await runGeas(
     args,
-    connect: (repo, token) => HttpGitHubClient(repo, token: token),
-    readToken: _readToken,
-    out: stdout,
-    err: stderr,
+    GeasContext(
+      connect: (repo, token) =>
+          HttpGitHubClient(repo, token: token, httpClient: httpClient),
+      tokens: platformTokenStore(),
+      envToken: env['GEAS_TOKEN'],
+      promptToken: _promptToken,
+      editFile: _editFile,
+      confirm: _confirm,
+      configDir:
+          p.join(env['XDG_CONFIG_HOME'] ?? p.join(home, '.config'), 'geas'),
+      dataDir: p.join(
+          env['XDG_DATA_HOME'] ?? p.join(home, '.local', 'share'), 'geas'),
+      hostname: Platform.localHostname.replaceFirst(RegExp(r'\.local$'), ''),
+      out: stdout,
+      err: stderr,
+    ),
   );
+  httpClient.close();
 }
 
-/// `GEAS_TOKEN`, otherwise a hidden prompt when run interactively.
-String? _readToken() {
-  final fromEnv = Platform.environment['GEAS_TOKEN'];
-  if (fromEnv != null && fromEnv.isNotEmpty) return fromEnv;
+/// A hidden prompt when run interactively, otherwise null.
+String? _promptToken() {
   if (!stdin.hasTerminal) return null;
   try {
     stdin.echoMode = false;
@@ -32,4 +50,25 @@ String? _readToken() {
     stdin.echoMode = true;
     stdout.writeln();
   }
+}
+
+/// Runs `$VISUAL` or `$EDITOR` (default `vi`) through the shell, so values
+/// like `code --wait` work.
+Future<bool> _editFile(String path) async {
+  final env = Platform.environment;
+  final editor = [env['VISUAL'], env['EDITOR']]
+      .firstWhere((e) => e != null && e.trim().isNotEmpty, orElse: () => 'vi')!;
+  final process = await Process.start(
+    '/bin/sh',
+    ['-c', '$editor "\$1"', 'sh', path],
+    mode: ProcessStartMode.inheritStdio,
+  );
+  return await process.exitCode == 0;
+}
+
+bool _confirm(String question) {
+  if (!stdin.hasTerminal) return false;
+  stdout.write('$question [Y/n] ');
+  final answer = stdin.readLineSync()?.trim().toLowerCase() ?? 'n';
+  return answer.isEmpty || answer.startsWith('y');
 }

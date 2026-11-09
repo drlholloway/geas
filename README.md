@@ -10,4 +10,20 @@ through a private GitHub repository instead of a hosted service.
 
 ## Status
 
-Planning. Architecture and data format are being worked out.
+The core (task format, merge, sync) and the `geas` CLI work; the app is a
+skeleton on sample data. See `TODO.md` for the plan.
+
+## CLI
+
+```sh
+just cli                                # builds build/geas
+build/geas init drlholloway/geas-data   # asks for the token, stores it
+build/geas add "Order 1N914s" -l pedals -t tayda -d "fri 5pm" -p high
+build/geas ls --today
+build/geas done S13H                    # ids are short suffixes from ls
+build/geas edit S13H                    # the Markdown file in $EDITOR
+build/geas --help
+```
+
+Every command syncs with GitHub first and pushes what it changed;
+`--offline` works on the local copy, and the next sync sends it.

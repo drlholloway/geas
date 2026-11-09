@@ -8,6 +8,7 @@ library;
 export 'src/archive.dart';
 export 'src/checklist.dart';
 export 'src/due.dart';
+export 'src/due_input.dart';
 export 'src/github/git_hash.dart';
 export 'src/github/github_client.dart';
 export 'src/github/http_github_client.dart';

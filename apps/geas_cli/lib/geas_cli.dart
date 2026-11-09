@@ -4,91 +4,65 @@ library;
 import 'package:args/command_runner.dart';
 import 'package:geas_core/geas_core.dart';
 
-/// Opens a [GitHubClient] on [repo] with [token].
-typedef Connect = GitHubClient Function(RepoRef repo, String token);
+import 'src/context.dart';
+import 'src/init_command.dart';
+import 'src/list_commands.dart';
+import 'src/session.dart';
+import 'src/task_commands.dart';
+import 'src/token_stores.dart';
 
-/// Returns the GitHub token, or null if there is none.
-typedef ReadToken = String? Function();
+export 'src/config.dart';
+export 'src/context.dart';
+export 'src/session.dart' show Session;
+export 'src/token_stores.dart';
 
-/// Runs `geas` with [args] and returns the exit code.
-Future<int> runGeas(
-  List<String> args, {
-  required Connect connect,
-  required ReadToken readToken,
-  required StringSink out,
-  required StringSink err,
-}) async {
-  final runner = CommandRunner<int>(
-      'geas', 'A task manager synced through GitHub.')
-    ..addCommand(InitCommand(connect: connect, readToken: readToken, out: out));
+/// Runs `geas` with [args] and returns the exit code: 0, 1 for a failure,
+/// 64 for bad usage.
+Future<int> runGeas(List<String> args, GeasContext context) async {
+  final runner =
+      CommandRunner<int>('geas', 'A task manager synced through GitHub.')
+        ..argParser.addFlag('offline',
+            negatable: false,
+            help: 'Don\'t sync; work on the local copy. Changes go out with '
+                'the next sync.');
+  for (final command in [
+    InitCommand(context),
+    AddCommand(context),
+    LsCommand(context),
+    ShowCommand(context),
+    DoneCommand(context),
+    RmCommand(context),
+    EditCommand(context),
+    ListsCommand(context),
+    TagsCommand(context),
+    SyncCommand(context),
+  ]) {
+    runner.addCommand(command);
+  }
+
+  void fail(String message) => context.err.writeln('geas: $message');
   try {
     return await runner.run(args) ?? 0;
   } on UsageException catch (e) {
-    err.writeln(e);
+    context.err.writeln(e);
     return 64;
-  } on GitHubException catch (e) {
-    err.writeln('geas: ${e.message}${_hint(e.statusCode)}');
-    return 1;
+  } on CliException catch (e) {
+    fail(e.message);
+  } on TokenStoreException catch (e) {
+    fail(e.message);
+  } on NotInitializedException catch (e) {
+    fail('$e');
+  } on SyncRetriesExhaustedException catch (e) {
+    fail('$e');
   } on UnsupportedFormatException catch (e) {
-    err.writeln('geas: $e');
-    return 1;
+    fail('$e');
+  } on GitHubException catch (e) {
+    fail(describeError(e));
   } on FormatException catch (e) {
-    err.writeln('geas: ${e.message}');
-    return 1;
+    fail(e.message);
+  } on Exception catch (e) {
+    if (!isNetworkError(e)) rethrow;
+    fail(describeError(e));
   }
-}
-
-String _hint(int statusCode) => switch (statusCode) {
-      401 => '\nThe token was rejected. Check GEAS_TOKEN or create a new one.',
-      403 => '\nThe token needs Contents read and write access to the repo.',
-      _ => '',
-    };
-
-class InitCommand extends Command<int> {
-  InitCommand({
-    required Connect connect,
-    required ReadToken readToken,
-    required StringSink out,
-  })  : _connect = connect,
-        _readToken = readToken,
-        _out = out;
-
-  final Connect _connect;
-  final ReadToken _readToken;
-  final StringSink _out;
-
-  @override
-  final name = 'init';
-
-  @override
-  final description =
-      'Set up a GitHub repo as the Geas data repo, writing geas.yaml if it '
-      'has none. Safe to run again, and on every device.';
-
-  @override
-  String get invocation => 'geas init <owner/repo>';
-
-  @override
-  Future<int> run() async {
-    final rest = argResults!.rest;
-    if (rest.length != 1) usageException('Give the data repo as owner/repo.');
-    final RepoRef repo;
-    try {
-      repo = RepoRef.parse(rest.single);
-    } on FormatException catch (e) {
-      usageException(e.message);
-    }
-    final token = _readToken();
-    if (token == null || token.isEmpty) {
-      usageException('No GitHub token. Set GEAS_TOKEN.');
-    }
-
-    final outcome = await initDataRepo(_connect(repo, token));
-    _out.writeln(switch (outcome) {
-      InitOutcome.created => 'Initialized $repo: wrote $repoConfigPath.',
-      InitOutcome.alreadyInitialized =>
-        '$repo is already a Geas data repo. Nothing to do.',
-    });
-    return 0;
-  }
+  return 1;
 }

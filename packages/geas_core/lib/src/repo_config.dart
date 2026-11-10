@@ -11,7 +11,7 @@ const initialRepoConfig = 'format: $currentFormat\n';
 
 /// The data repo's `geas.yaml`.
 class RepoConfig {
-  const RepoConfig({required this.format});
+  const RepoConfig({required this.format, this.warnDays});
 
   /// Parses `geas.yaml`, throwing [FormatException] if it isn't a map with an
   /// integer `format`.
@@ -27,8 +27,17 @@ class RepoConfig {
         '$repoConfigPath must be a map with an integer "format".',
       );
     }
-    return RepoConfig(format: doc['format'] as int);
+    final warnDays = doc['warn_days'];
+    if (warnDays != null && (warnDays is! int || warnDays < 0)) {
+      throw const FormatException(
+        '"warn_days" in $repoConfigPath must be a whole number of days.',
+      );
+    }
+    return RepoConfig(format: doc['format'] as int, warnDays: warnDays as int?);
   }
 
   final int format;
+
+  /// Days ahead a due date counts as approaching; null for the default.
+  final int? warnDays;
 }

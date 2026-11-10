@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import '../archive.dart';
+import '../matrix.dart';
+import '../repo_config.dart';
 import '../task.dart';
 import '../task_list.dart';
 import 'file_area.dart';
@@ -23,6 +25,7 @@ class Workspace {
   final _taskPaths = <String, String>{};
   final _lists = <String, TaskList>{};
   final _problems = <String, String>{};
+  RepoConfig? _config;
 
   Iterable<Task> get tasks => _tasks.values;
 
@@ -32,6 +35,12 @@ class Workspace {
   /// Files that couldn't be read, by path, with the reason.
   Map<String, String> get problems => Map.unmodifiable(_problems);
 
+  /// `geas.yaml`, or null if it's missing or doesn't parse.
+  RepoConfig? get config => _config;
+
+  /// Days ahead a due date counts as approaching.
+  int get warnDays => _config?.warnDays ?? defaultWarnDays;
+
   Task? task(String id) => _tasks[id];
 
   /// Re-reads everything, as after a sync.
@@ -40,6 +49,7 @@ class Workspace {
     _taskPaths.clear();
     _lists.clear();
     _problems.clear();
+    _config = null;
     _index(await _area.readAll());
   }
 
@@ -80,6 +90,14 @@ class Workspace {
 
   void _index(Map<String, List<int>> files) {
     files.forEach((path, bytes) {
+      if (path == repoConfigPath) {
+        try {
+          _config = RepoConfig.parse(utf8.decode(bytes));
+        } on FormatException catch (e) {
+          _problems[path] = e.message;
+        }
+        return;
+      }
       final isTask =
           (path.startsWith('tasks/') || path.startsWith('archive/')) &&
               path.endsWith('.md');

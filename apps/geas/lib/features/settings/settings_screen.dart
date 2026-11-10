@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geas_core/geas_core.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../state/conflicts.dart';
 import '../../state/environment.dart';
 import '../../state/session.dart';
 import '../../state/store.dart';
@@ -20,6 +21,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(configProvider).value;
     final status = ref.watch(syncProvider);
+    final conflicts = ref.watch(conflictsProvider).value?.length ?? 0;
     final now = ref.watch(clockProvider)();
     final theme = Theme.of(context);
     final narrow = MediaQuery.sizeOf(context).width < sidebarBreakpoint;
@@ -77,15 +79,7 @@ class SettingsScreen extends ConsumerWidget {
                   : Icons.sync_problem,
             ),
             title: const Text('Last sync'),
-            subtitle: Text(
-              [
-                syncLine,
-                if (status.conflicts > 0)
-                  'Sync kept one side of ${status.conflicts} '
-                      '${status.conflicts == 1 ? 'conflict' : 'conflicts'}; '
-                      'the other is saved in conflicts.json.',
-              ].join(' '),
-            ),
+            subtitle: Text(syncLine),
             trailing: TextButton(
               onPressed: status.syncing
                   ? null
@@ -93,6 +87,17 @@ class SettingsScreen extends ConsumerWidget {
               child: const Text('Sync now'),
             ),
           ),
+          if (conflicts > 0)
+            ListTile(
+              leading: Icon(Icons.merge_type, color: theme.colorScheme.error),
+              title: const Text('Conflicts'),
+              subtitle: Text(
+                'Sync kept one side of $conflicts '
+                '${conflicts == 1 ? 'conflict' : 'conflicts'}.',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/conflicts'),
+            ),
           heading('Token'),
           ListTile(
             leading: const Icon(Icons.key_outlined),

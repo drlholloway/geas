@@ -1,6 +1,7 @@
 import 'package:geas_core/geas_core.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/conflicts/conflicts_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/setup/setup_screen.dart';
 import '../features/shell/app_shell.dart';
@@ -38,6 +39,7 @@ GoRouter createRouter() => GoRouter(
           ),
         ),
         GoRoute(path: '/settings', builder: (c, s) => const SettingsScreen()),
+        GoRoute(path: '/conflicts', builder: (c, s) => const ConflictsScreen()),
       ],
     ),
     GoRoute(

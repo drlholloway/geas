@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geas_core/geas_core.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../state/conflicts.dart';
 import '../../state/environment.dart';
 import '../../state/session.dart';
 import '../../state/store.dart';
@@ -65,33 +66,37 @@ class SyncStatusBar extends ConsumerWidget {
     };
     final small = theme.textTheme.bodySmall!;
 
-    void openSettings() {
+    final conflicts = ref.watch(conflictsProvider).value?.length ?? 0;
+
+    void go(String location) {
       final scaffold = Scaffold.maybeOf(context);
       if (scaffold != null && scaffold.isDrawerOpen) scaffold.closeDrawer();
-      context.go('/settings');
+      context.go(location);
     }
+
+    Widget alert(String text, String location) => Padding(
+      padding: const EdgeInsets.only(right: 12, bottom: 4),
+      child: InkWell(
+        onTap: () => go(location),
+        child: Text(
+          text,
+          style: small.copyWith(color: theme.colorScheme.error),
+        ),
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 4, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (status.conflicts > 0 || warning != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 12, bottom: 4),
-              child: InkWell(
-                onTap: openSettings,
-                child: Text(
-                  [
-                    if (status.conflicts > 0)
-                      'Sync kept one side of ${status.conflicts} '
-                          '${status.conflicts == 1 ? 'conflict' : 'conflicts'}.',
-                    ?warning,
-                  ].join(' '),
-                  style: small.copyWith(color: theme.colorScheme.error),
-                ),
-              ),
+          if (conflicts > 0)
+            alert(
+              'Sync kept one side of $conflicts '
+                  '${conflicts == 1 ? 'conflict' : 'conflicts'}. Review',
+              '/conflicts',
             ),
+          if (warning != null) alert(warning, '/settings'),
           Row(
             children: [
               Icon(icon, size: 16, color: color),
@@ -115,7 +120,7 @@ class SyncStatusBar extends ConsumerWidget {
                 tooltip: 'Settings',
                 iconSize: 18,
                 visualDensity: VisualDensity.compact,
-                onPressed: openSettings,
+                onPressed: () => go('/settings'),
                 icon: const Icon(Icons.settings_outlined),
               ),
             ],

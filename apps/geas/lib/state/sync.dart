@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geas_core/geas_core.dart';
 
+import 'conflicts.dart';
 import 'environment.dart';
 import 'session.dart';
 import 'store.dart';
@@ -19,7 +20,6 @@ class SyncStatus {
     this.error,
     this.offline = false,
     this.fixInSettings = false,
-    this.conflicts = 0,
   });
 
   final bool syncing;
@@ -34,16 +34,12 @@ class SyncStatus {
   /// The token needs replacing.
   final bool fixInSettings;
 
-  /// Conflicts sync resolved that haven't been dismissed.
-  final int conflicts;
-
   SyncStatus _started() => SyncStatus(
     syncing: true,
     lastSynced: lastSynced,
     error: error,
     offline: offline,
     fixInSettings: fixInSettings,
-    conflicts: conflicts,
   );
 }
 
@@ -111,10 +107,8 @@ class SyncController extends Notifier<SyncStatus> {
           clock: clock,
         ).sync();
         await tasks.reload();
-        next = SyncStatus(
-          lastSynced: clock(),
-          conflicts: (await session.store.readConflicts()).length,
-        );
+        next = SyncStatus(lastSynced: clock());
+        if (ref.mounted) ref.invalidate(conflictsProvider);
       }
     } on Exception catch (e) {
       if (!ref.mounted) return;

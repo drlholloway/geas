@@ -266,14 +266,24 @@ class _QuadrantView extends StatelessWidget {
               width: hovering ? 2 : 1,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              LayoutBuilder(
-                builder: (context, box) {
-                  // A small box drops the subtitle.
-                  final compact = box.maxWidth < 280;
-                  return Padding(
+          // A small box, as on a phone, drops the subtitle and tightens
+          // the task rows.
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final compact = box.maxWidth < 280;
+              final title = Text(
+                quadrant.title,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    (compact
+                            ? theme.textTheme.titleSmall!
+                            : theme.textTheme.titleMedium!)
+                        .copyWith(color: tint, fontWeight: FontWeight.w600),
+              );
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
                     padding: EdgeInsets.fromLTRB(
                       compact ? 10 : 16,
                       compact ? 8 : 12,
@@ -282,30 +292,24 @@ class _QuadrantView extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.flag, size: 18, color: tint),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            quadrant.title,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium!.copyWith(
-                              color: tint,
-                              fontWeight: FontWeight.w600,
+                        Icon(Icons.flag, size: compact ? 16 : 18, color: tint),
+                        SizedBox(width: compact ? 6 : 8),
+                        if (compact)
+                          Expanded(child: title)
+                        else ...[
+                          Flexible(child: title),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              quadrant.subtitle,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall!.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
                             ),
                           ),
-                        ),
-                        SizedBox(width: compact ? 4 : 8),
-                        Expanded(
-                          child: compact
-                              ? const SizedBox.shrink()
-                              : Text(
-                                  quadrant.subtitle,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall!.copyWith(
-                                    color: colors.onSurfaceVariant,
-                                  ),
-                                ),
-                        ),
+                        ],
+                        const SizedBox(width: 4),
                         Text(
                           '${tasks.length}',
                           style: theme.textTheme.labelLarge!.copyWith(
@@ -314,32 +318,33 @@ class _QuadrantView extends StatelessWidget {
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
-              Expanded(
-                child: tasks.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Nothing here.',
-                          style: theme.textTheme.bodyMedium!.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                      )
-                    : ListView(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        children: [
-                          for (final task in tasks)
-                            _DraggableTask(
-                              key: ValueKey(task.id),
-                              task: task,
-                              longPress: longPress,
+                  ),
+                  Expanded(
+                    child: tasks.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Nothing here.',
+                              style: theme.textTheme.bodyMedium!.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
                             ),
-                        ],
-                      ),
-              ),
-            ],
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            children: [
+                              for (final task in tasks)
+                                _DraggableTask(
+                                  key: ValueKey(task.id),
+                                  task: task,
+                                  longPress: longPress,
+                                  compact: compact,
+                                ),
+                            ],
+                          ),
+                  ),
+                ],
+              );
+            },
           ),
         );
       },
@@ -352,14 +357,16 @@ class _DraggableTask extends StatelessWidget {
     super.key,
     required this.task,
     required this.longPress,
+    required this.compact,
   });
 
   final Task task;
   final bool longPress;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final tile = TaskTile(task: task);
+    final tile = TaskTile(task: task, compact: compact);
     final feedback = Material(
       elevation: 6,
       borderRadius: BorderRadius.circular(8),

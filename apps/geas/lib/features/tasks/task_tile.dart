@@ -10,12 +10,21 @@ import 'task_detail.dart';
 /// One task: checkbox in its priority color, title, then due date, list,
 /// tags and checklist progress.
 class TaskTile extends ConsumerWidget {
-  const TaskTile({super.key, required this.task, this.showList = true});
+  const TaskTile({
+    super.key,
+    required this.task,
+    this.showList = true,
+    this.compact = false,
+  });
 
   final Task task;
 
   /// Off when the screen is already showing that list.
   final bool showList;
+
+  /// Tighter padding and smaller text, for narrow boxes like the matrix's
+  /// quadrants on a phone.
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -79,9 +88,12 @@ class TaskTile extends ConsumerWidget {
     }
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+      contentPadding: EdgeInsets.symmetric(horizontal: compact ? 2 : 12),
+      dense: compact,
+      horizontalTitleGap: compact ? 4 : null,
       leading: Checkbox(
         value: done,
+        visualDensity: compact ? VisualDensity.compact : null,
         side: BorderSide(color: priorityColor(task.priority, colors), width: 2),
         onChanged: (value) => ref
             .read(taskStoreProvider.notifier)
@@ -101,7 +113,7 @@ class TaskTile extends ConsumerWidget {
       ),
       subtitle: details.isEmpty
           ? null
-          : Wrap(spacing: 12, runSpacing: 2, children: details),
+          : Wrap(spacing: compact ? 8 : 12, runSpacing: 2, children: details),
       onTap: () => showTaskDetail(context, task.id),
     );
   }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:geas_core/geas_core.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -130,6 +131,7 @@ class AppEnvironment {
     required this.openUrl,
     required this.hostname,
     this.homeWidget,
+    this.version = '',
   });
 
   /// The real thing, with files under the app support directory.
@@ -149,6 +151,7 @@ class AppEnvironment {
           ? Platform.operatingSystem
           : host,
       homeWidget: Platform.isAndroid ? AndroidHomeWidget() : null,
+      version: (await PackageInfo.fromPlatform()).version,
     );
   }
 
@@ -168,6 +171,9 @@ class AppEnvironment {
 
   /// The home-screen matrix widget, on Android.
   final HomeWidgetHost? homeWidget;
+
+  /// This build's version, as in pubspec.yaml.
+  final String version;
 }
 
 final environmentProvider = Provider<AppEnvironment>(

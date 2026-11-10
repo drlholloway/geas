@@ -33,7 +33,13 @@ void main() {
   setUpAll(_loadFonts);
 
   late TestApp app;
-  setUp(() => app = TestApp(dataRepo: octocat, hostname: 'MacBook-Air'));
+  setUp(
+    () => app = TestApp(
+      dataRepo: octocat,
+      hostname: 'MacBook-Air',
+      version: _pubspecVersion(),
+    ),
+  );
 
   Finder inSidebar(String text) =>
       find.descendant(of: find.byType(Sidebar), matching: find.text(text));
@@ -165,6 +171,12 @@ void main() {
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
     await shot(tester, 'settings');
+    await tester.scrollUntilVisible(
+      find.text('Source code'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await shot(tester, 'about');
   });
 
   shotTest('phone', (tester) async {
@@ -180,6 +192,14 @@ void main() {
     await tester.pumpAndSettle();
     await shot(tester, 'phone-matrix');
   });
+}
+
+/// The app's version from pubspec.yaml, without the build number.
+String _pubspecVersion() {
+  final line = File('pubspec.yaml')
+      .readAsLinesSync()
+      .firstWhere((l) => l.startsWith('version:'));
+  return line.split(':').last.trim().split('+').first;
 }
 
 /// Orders in the fake repo: one on its way, arriving today; one ordered;

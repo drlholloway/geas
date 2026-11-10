@@ -75,6 +75,13 @@ just run-macos    # or run-android, run-linux
 `TODO.md` holds the design decisions, the file format, the sync design and
 the plan; `CHANGELOG.md` the release history.
 
+## Support
+
+Help is in the [wiki](https://github.com/drlholloway/geas/wiki), and bugs
+go in [Issues](https://github.com/drlholloway/geas/issues). Geas is free; if
+it keeps you on top of things, you can
+[buy me a coffee](https://buymeacoffee.com/drlholloway).
+
 ## License
 
 Copyright © 2026 Cryptid Effects (Lane Holloway). Licensed under the

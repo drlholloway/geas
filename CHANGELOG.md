@@ -5,6 +5,11 @@ GitHub Release notes.
 
 ## Unreleased
 
+## 0.2.0 — 2026-11-10
+
+An Android home-screen widget for the Eisenhower matrix, an About section
+in Settings, and a new icon.
+
 ### Added
 - **An Android home-screen widget for the Eisenhower matrix:** the four
   quadrants with their counts and tasks, with due-soon tasks in bold amber
@@ -18,6 +23,10 @@ GitHub Release notes.
 ### Changed
 - **A new icon:** a cream check pressed into an amber wax seal, the
   obligation sealed. It replaces the check in a cord ring.
+
+### Fixed
+- **The Matrix on a phone:** quadrant titles show in full instead of
+  being cut off, and task rows have room to breathe.
 
 ## 0.1.0 — 2026-11-09
 

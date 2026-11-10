@@ -264,12 +264,12 @@ Matrix:
       task (none, approaching, overdue), with tests
 - [x] Warning window: a task is approaching when it's due within 2 days,
       the number of days set by an optional `warn_days` in `geas.yaml`
-- [ ] App: a Matrix view in the sidebar with the four quadrants, in a 2x2
+- [x] App: a Matrix view in the sidebar with the four quadrants, in a 2x2
       grid at desktop widths and stacked or paged on a phone. Dragging a
       task to another quadrant sets its priority
 - [x] App: approaching tasks are bold and in a warning color, overdue ones in
       the error color, in the matrix and in every other task list
-- [ ] Matrix filters: by list and tag, and whether to include tasks with no
+- [x] Matrix filters: by list and tag, and whether to include tasks with no
       due date
 - [x] CLI: `geas matrix` prints the four quadrants (`-l`, `-t`,
       `--no-undated`)

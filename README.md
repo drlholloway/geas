@@ -12,8 +12,8 @@ through a private GitHub repository instead of a hosted service.
 
 The core (task format, merge, sync) and the `geas` CLI work. The app sets
 itself up the same way as `geas setup`, syncs, adds, edits and deletes
-tasks, manages lists and tags, and shows sync conflicts; the Eisenhower
-matrix and order tracking are next. See
+tasks, manages lists and tags, shows sync conflicts, and has an Eisenhower
+matrix; order tracking is next. See
 `TODO.md` for the plan.
 
 ## CLI

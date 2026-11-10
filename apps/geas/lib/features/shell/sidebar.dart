@@ -80,6 +80,22 @@ class Sidebar extends ConsumerWidget {
                 item(const TaskView(ViewKind.list, inboxId), Icons.inbox),
                 item(const TaskView(ViewKind.today), Icons.today),
                 item(const TaskView(ViewKind.week), Icons.date_range),
+                ListTile(
+                  dense: true,
+                  selected: location == '/matrix',
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  leading: const Icon(Icons.grid_view, size: 20),
+                  title: const Text('Matrix'),
+                  onTap: () {
+                    final scaffold = Scaffold.maybeOf(context);
+                    if (scaffold != null && scaffold.isDrawerOpen) {
+                      scaffold.closeDrawer();
+                    }
+                    context.go('/matrix');
+                  },
+                ),
                 heading(
                   'Lists',
                   action: IconButton(

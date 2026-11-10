@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geas/state/sync.dart';
 import 'package:geas_core/geas_core.dart';
@@ -106,6 +107,25 @@ void main() {
     }
     expect(inQuadrant(Quadrant.doFirst, 'Order 1N914s'), findsOneWidget);
     expect(inQuadrant(Quadrant.delegate, 'Reply to the luthier'), findsOne);
+  });
+
+  testWidgets('four boxes on a phone keep their whole titles', (tester) async {
+    await openMatrix(tester, size: const Size(400, 800));
+    await tester.tap(find.byTooltip('All four on one screen'));
+    await tester.pumpAndSettle();
+    for (final q in Quadrant.values) {
+      final title = tester.renderObject<RenderParagraph>(
+        find.descendant(
+          of: inQuadrant(q, q.title),
+          matching: find.byType(RichText),
+        ),
+      );
+      expect(
+        title.size.width,
+        greaterThanOrEqualTo(title.getMaxIntrinsicWidth(double.infinity)),
+        reason: '${q.title} is cut short',
+      );
+    }
   });
 
   testWidgets('and one at a time on a wide screen', (tester) async {

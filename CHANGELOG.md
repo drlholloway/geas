@@ -11,6 +11,9 @@ GitHub Release notes.
   and overdue ones in red. Tick a task off right there; it's finished and
   synced in the background. Tap a task to open it, or a quadrant's title
   to open the Matrix.
+- **About in Settings:** the version, a link to the wiki for help, the
+  source code, and a [Buy me a coffee](https://buymeacoffee.com/drlholloway)
+  link.
 
 ### Changed
 - **A new icon:** a cream check pressed into an amber wax seal, the

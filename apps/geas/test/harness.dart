@@ -23,11 +23,16 @@ final now = DateTime(2026, 11, 8, 12);
 /// The app wired to fakes: a GitHub repo, a token store, a config and a
 /// local copy, all in memory.
 class TestApp {
-  TestApp({this.dataRepo = repo, this.hostname = 'testbox'});
+  TestApp({
+    this.dataRepo = repo,
+    this.hostname = 'testbox',
+    this.version = '9.9.9',
+  });
 
-  /// The data repo, and this device's name.
+  /// The data repo, this device's name and the app's version.
   final RepoRef dataRepo;
   final String hostname;
+  final String version;
 
   late final github = FakeGitHubClient(repo: dataRepo);
   final tokens = MemoryTokenStore();
@@ -61,6 +66,7 @@ class TestApp {
     },
     hostname: hostname,
     homeWidget: homeWidget,
+    version: version,
   );
 
   /// The repo initialized with the sample tasks, and this device set up

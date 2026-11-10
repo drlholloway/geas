@@ -12,8 +12,13 @@ import '../shell/sidebar.dart';
 import '../shell/sync_status.dart';
 import '../tasks/due_label.dart';
 
+/// Where help lives, and the tip jar.
+const helpUrl = 'https://github.com/drlholloway/geas/wiki';
+const tipUrl = 'https://buymeacoffee.com/drlholloway';
+const sourceUrl = 'https://github.com/drlholloway/geas';
+
 /// The data repo, this device, the token and sync, with ways to replace
-/// the token or disconnect.
+/// the token or disconnect; then help and about.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -27,6 +32,7 @@ class SettingsScreen extends ConsumerWidget {
     final narrow = MediaQuery.sizeOf(context).width < sidebarBreakpoint;
     if (config == null) return const Scaffold();
 
+    final env = ref.read(environmentProvider);
     final expires = config.tokenExpires;
     final warning = tokenExpiryWarning(config, now);
     final syncLine = switch (status) {
@@ -58,14 +64,12 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Data repo'),
             subtitle: Text('${config.repo}'),
             trailing: const Icon(Icons.open_in_new, size: 18),
-            onTap: () => ref
-                .read(environmentProvider)
-                .openUrl(
-                  Uri.https(
-                    'github.com',
-                    '/${config.repo.owner}/${config.repo.name}',
-                  ),
-                ),
+            onTap: () => env.openUrl(
+              Uri.https(
+                'github.com',
+                '/${config.repo.owner}/${config.repo.name}',
+              ),
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.devices_outlined),
@@ -136,6 +140,50 @@ class SettingsScreen extends ConsumerWidget {
               'Stop syncing and forget the token. Tasks stay in the repo.',
             ),
             onTap: () => _disconnect(context, ref, config.repo),
+          ),
+          heading('About'),
+          ListTile(
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.asset(
+                'assets/icon/icon_512.png',
+                width: 44,
+                height: 44,
+              ),
+            ),
+            title: Text(env.version.isEmpty ? 'Geas' : 'Geas ${env.version}'),
+            subtitle: const Text(
+              'Tasks as Markdown files in your own GitHub repo. A geas is a '
+              'binding obligation, from Irish myth.',
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('Help'),
+            subtitle: const Text(
+              'The wiki: setting up, every feature, troubleshooting.',
+            ),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => env.openUrl(Uri.parse(helpUrl)),
+          ),
+          ListTile(
+            leading: const Icon(Icons.coffee_outlined),
+            title: const Text('Buy me a coffee'),
+            subtitle: const Text(
+              'Geas is free. If it keeps you on top of things, a tip keeps '
+              'it going.',
+            ),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => env.openUrl(Uri.parse(tipUrl)),
+          ),
+          ListTile(
+            leading: const Icon(Icons.code),
+            title: const Text('Source code'),
+            subtitle: const Text(
+              'On GitHub, under the PolyForm Shield 1.0.0 license.',
+            ),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => env.openUrl(Uri.parse(sourceUrl)),
           ),
         ],
       ),

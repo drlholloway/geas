@@ -60,21 +60,40 @@ class OrdersScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Orders')),
       drawer: narrow ? const Drawer(child: Sidebar()) : null,
+      floatingActionButton: empty
+          ? null
+          : FloatingActionButton(
+              tooltip: 'Add an order',
+              onPressed: () => addOrder(context, ref),
+              child: const Icon(Icons.add),
+            ),
       body: empty
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(32),
-                child: Text(
-                  'No orders. Open a task and choose "Track an order".',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge!.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'No orders yet.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyLarge!.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () => addOrder(context, ref),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add an order'),
+                    ),
+                  ],
                 ),
               ),
             )
           : ListView(
-              padding: const EdgeInsets.only(bottom: 32),
+              // Room for the add button over the last row.
+              padding: const EdgeInsets.only(bottom: 88),
               children: [
                 for (final status in OrderStatus.values)
                   if (groups[status]!.isNotEmpty) section(status),
@@ -155,6 +174,123 @@ class _OrderTile extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Asks what's coming, from whom, and optionally a tracking number, then
+/// adds a task for the order to the inbox and opens it.
+Future<void> addOrder(BuildContext context, WidgetRef ref) async {
+  final created = await showDialog<({String title, Order order})>(
+    context: context,
+    builder: (context) => const _NewOrderDialog(),
+  );
+  if (created == null || !context.mounted) return;
+  final task = ref
+      .read(taskStoreProvider.notifier)
+      .add(created.title, order: created.order);
+  await showTaskDetail(context, task.id);
+}
+
+class _NewOrderDialog extends StatefulWidget {
+  const _NewOrderDialog();
+
+  @override
+  State<_NewOrderDialog> createState() => _NewOrderDialogState();
+}
+
+class _NewOrderDialogState extends State<_NewOrderDialog> {
+  final _title = TextEditingController();
+  final _vendor = TextEditingController();
+  final _number = TextEditingController();
+  final _tracking = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    for (final c in [_title, _vendor]) {
+      c.addListener(() => setState(() {}));
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in [_title, _vendor, _number, _tracking]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  static String? _orNull(TextEditingController c) =>
+      c.text.trim().isEmpty ? null : c.text.trim();
+
+  /// What's typed, or "Order from" and the vendor if only that is.
+  String? get _taskTitle {
+    final title = _orNull(_title);
+    if (title != null) return title;
+    final vendor = _orNull(_vendor);
+    return vendor == null ? null : 'Order from $vendor';
+  }
+
+  void _save() {
+    final title = _taskTitle;
+    if (title == null) return;
+    var order = Order(vendor: _orNull(_vendor), number: _orNull(_number));
+    final tracking = _orNull(_tracking);
+    if (tracking != null) order = order.withPackage(Package.track(tracking));
+    Navigator.pop(context, (title: title, order: order));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    InputDecoration field(String label, {String? hint}) =>
+        InputDecoration(labelText: label, hintText: hint);
+    return AlertDialog(
+      title: const Text('New order'),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _title,
+              autofocus: true,
+              textInputAction: TextInputAction.next,
+              decoration: field('What\'s coming', hint: 'Order 1N914s'),
+            ),
+            TextField(
+              controller: _vendor,
+              textInputAction: TextInputAction.next,
+              decoration: field('Vendor'),
+            ),
+            TextField(
+              controller: _number,
+              textInputAction: TextInputAction.next,
+              decoration: field('Order number'),
+            ),
+            TextField(
+              controller: _tracking,
+              autocorrect: false,
+              textInputAction: TextInputAction.done,
+              decoration: field(
+                'Tracking number',
+                hint: 'Optional; add packages later too',
+              ),
+              onSubmitted: (_) => _save(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _taskTitle == null ? null : _save,
+          child: const Text('Add'),
+        ),
+      ],
     );
   }
 }

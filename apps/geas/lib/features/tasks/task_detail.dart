@@ -4,6 +4,7 @@ import 'package:geas_core/geas_core.dart';
 
 import '../../app/theme.dart';
 import '../../state/store.dart';
+import '../orders/order_section.dart';
 import 'due_label.dart';
 
 /// Shows the task with [id] in a sheet where every field can be edited.
@@ -232,7 +233,9 @@ class _TaskDetailState extends ConsumerState<_TaskDetail> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            OrderSection(task: task),
+            const SizedBox(height: 8),
             if (body != null) ...[
               TextField(
                 controller: body,

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/conflicts/conflicts_screen.dart';
 import '../features/matrix/matrix_screen.dart';
+import '../features/orders/orders_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/setup/setup_screen.dart';
 import '../features/shell/app_shell.dart';
@@ -39,6 +40,7 @@ GoRouter createRouter() => GoRouter(
             view: TaskView(ViewKind.tag, s.pathParameters['tag']!),
           ),
         ),
+        GoRoute(path: '/orders', builder: (c, s) => const OrdersScreen()),
         GoRoute(path: '/matrix', builder: (c, s) => const MatrixScreen()),
         GoRoute(path: '/settings', builder: (c, s) => const SettingsScreen()),
         GoRoute(path: '/conflicts', builder: (c, s) => const ConflictsScreen()),

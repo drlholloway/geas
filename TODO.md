@@ -329,6 +329,7 @@ Orders and packages:
 - [x] Public repo, PolyForm Shield license, and a wiki on installing and
       using Geas
 - [x] Tag `v0.1.0`
+- [x] Tag `v0.2.0`: the Android matrix widget, About, the new icon
 
 ## Later
 

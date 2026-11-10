@@ -1,6 +1,6 @@
 name: geas_core
 description: Pure-Dart core for Geas. Task and list models, the Markdown + YAML file format, per-task merge, the GitHub sync client and the local cache. No Flutter.
-version: 0.1.0
+version: 0.2.0
 publish_to: none
 resolution: workspace
 environment:

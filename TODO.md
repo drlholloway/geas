@@ -276,6 +276,11 @@ Matrix:
       due date
 - [x] CLI: `geas matrix` prints the four quadrants (`-l`, `-t`,
       `--no-undated`)
+- [x] Android home-screen widget: the four quadrants with counts and
+      their tasks, due-date colors worked out on the device each half hour.
+      A quadrant title opens the Matrix, a task opens its sheet, and a
+      checkbox finishes it: handed to the app if it's running, else done in
+      a background Dart isolate that syncs (Glance, through home_widget)
 
 Orders and packages:
 
@@ -330,7 +335,8 @@ Orders and packages:
 - Reminders as local notifications on each device. Dismissals sync, so a
   device that hasn't synced yet may still fire one.
 - Recurring tasks (RRULE)
-- Background sync on Android (WorkManager)
+- Background sync on Android (WorkManager). Until then the home-screen
+  widget shows changes from other devices once the app next syncs
 - Quick-add syntax shared by app and CLI (`#tag`, `^list`, `!high`,
   `tomorrow`)
 - Calendar view

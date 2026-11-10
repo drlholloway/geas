@@ -43,5 +43,9 @@ run-macos:
 run-android:
     cd {{app}} && flutter run -d android
 
+# the app on the sample tasks and an in-memory GitHub, for emulators
+run-demo:
+    cd {{app}} && flutter run -t demo/main.dart
+
 run-linux:
     cd {{app}} && flutter run -d linux

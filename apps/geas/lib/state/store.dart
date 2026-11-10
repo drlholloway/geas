@@ -69,14 +69,24 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
 
   DateTime get _now => ref.read(clockProvider)();
 
-  void add(
+  /// Adds a new task and returns it.
+  Task add(
     String title, {
     String list = inboxId,
     List<String> tags = const [],
     Due? due,
-  }) => _save(
-    Task.create(title: title, now: _now, list: list, tags: tags, due: due),
-  );
+    Order? order,
+  }) {
+    final task = Task.create(
+      title: title,
+      now: _now,
+      list: list,
+      tags: tags,
+      due: due,
+    ).copyWith(order: order);
+    _save(task);
+    return task;
+  }
 
   void setDone(Task task, {required bool done}) =>
       _save(done ? task.complete(_now) : task.reopen(_now));

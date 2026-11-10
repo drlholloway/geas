@@ -124,4 +124,66 @@ void main() {
     expect(find.text('Packages arriving  1'), findsOneWidget);
     expect(find.text('Order strings'), findsOneWidget);
   });
+
+  testWidgets('with no orders, a button adds the first', (tester) async {
+    await openOrders(tester);
+    expect(find.text('No orders yet.'), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsNothing);
+    await tester.tap(find.text('Add an order'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Vendor'), 'Tayda');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Tracking number'),
+      '9400111899223397846185',
+    );
+    await tester.pump();
+    await tester.tap(find.text('Add'));
+    await tester.pumpAndSettle();
+    // The new task opens.
+    expect(
+      find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.text('USPS 9400111899223397846185'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tapAt(const Offset(700, 40));
+    await tester.pumpAndSettle();
+    expect(find.text('Shipped  1'), findsOneWidget);
+    expect(find.text('Order from Tayda'), findsOneWidget);
+    await tester.pump(syncDelay);
+    await tester.pumpAndSettle();
+    final order = remote('Order from Tayda').order!;
+    expect(order.vendor, 'Tayda');
+    expect(order.packages.single.carrier, Carrier.usps);
+  });
+
+  testWidgets('with orders, a + button adds another', (tester) async {
+    pushOrder('Order diodes', const Order(vendor: 'Tayda'));
+    await openOrders(tester);
+    await tester.tap(find.byTooltip('Add an order'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(FilledButton, 'Add'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Add'))
+          .onPressed,
+      isNull, // nothing typed yet
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, "What's coming"),
+      'Order knobs',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Order number'),
+      '42',
+    );
+    await tester.pump();
+    await tester.tap(find.text('Add'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(700, 40));
+    await tester.pumpAndSettle();
+    expect(find.text('Ordered  2'), findsOneWidget);
+    expect(find.text('#42'), findsOneWidget);
+  });
 }

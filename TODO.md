@@ -288,6 +288,9 @@ Orders and packages:
 - [x] App: an Orders view in the sidebar grouped into Ordered, Shipped, Out
       for delivery, Problem and Delivered (collapsed), with vendor, order
       number, carrier, ETA and buttons that open the tracking pages
+- [x] App: add an order from the Orders view (a button when there are
+      none, a + when there are): what's coming, vendor, order number and an
+      optional tracking number make a new inbox task, which opens
 - [x] App: an order section in task detail to set the vendor, order number
       and status, and to add or remove packages (paste a tracking number to
       add one)

@@ -1,0 +1,171 @@
+name: release
+# Tag a commit `vX.Y.Z` (matching apps/geas/pubspec.yaml) to build the
+# Android APK, the macOS zip, the Linux tarball and AppImage, and the CLI
+# for Linux and macOS, and attach them to a GitHub Release. Pull requests
+# that touch packaging build everything without publishing.
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - packaging/**
+      - apps/geas/android/app/build.gradle.kts
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: v
+        run: echo "version=$(grep '^version:' apps/geas/pubspec.yaml | awk '{print $2}' | cut -d+ -f1)" >> "$GITHUB_OUTPUT"
+      - name: tag matches pubspec
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "v${{ steps.v.outputs.version }}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} doesn't match pubspec version ${{ steps.v.outputs.version }}"
+            exit 1
+          fi
+
+  linux:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev
+      - run: flutter pub get
+      - run: cd apps/geas && flutter build linux --release
+      - name: tarball
+        run: |
+          STAGE=geas-linux-x64-${{ needs.version.outputs.version }}
+          mkdir -p $STAGE
+          cp -r apps/geas/build/linux/x64/release/bundle/. $STAGE/
+          cp packaging/linux/README-linux.md $STAGE/README.md
+          tar czf $STAGE.tar.gz $STAGE
+      - name: appimage
+        run: |
+          curl -sSL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          APPIMAGETOOL=$PWD/appimagetool packaging/appimage/build-appimage.sh apps/geas/build/linux/x64/release/bundle ${{ needs.version.outputs.version }} .
+      - name: cli
+        run: dart compile exe apps/geas_cli/bin/geas.dart -o geas-cli-linux-x64-${{ needs.version.outputs.version }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux
+          path: |
+            geas-linux-x64-*.tar.gz
+            Geas-*-x86_64.AppImage
+            Geas-*-x86_64.AppImage.zsync
+            geas-cli-linux-x64-*
+
+  android:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - name: release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret missing; the APK will be debug-signed"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > apps/geas/android/app/geas-release.jks
+          cat > apps/geas/android/key.properties <<EOF
+          storeFile=geas-release.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+      - run: cd apps/geas && flutter build apk --release
+      - run: cp apps/geas/build/app/outputs/flutter-apk/app-release.apk geas-android-${{ needs.version.outputs.version }}.apk
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android
+          path: geas-android-*.apk
+
+  macos:
+    needs: version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: cd apps/geas && flutter build macos --release
+      - name: sign (ad hoc) and zip
+        run: |
+          APP=apps/geas/build/macos/Build/Products/Release/Geas.app
+          codesign --force --deep --preserve-metadata=entitlements --sign - "$APP"
+          codesign --verify --deep --strict "$APP"
+          ditto -c -k --keepParent "$APP" geas-macos-${{ needs.version.outputs.version }}.zip
+      - name: cli
+        run: dart compile exe apps/geas_cli/bin/geas.dart -o geas-cli-macos-arm64-${{ needs.version.outputs.version }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos
+          path: |
+            geas-macos-*.zip
+            geas-cli-macos-arm64-*
+
+  publish:
+    needs: [version, linux, android, macos]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - run: ls -la dist
+      - name: release notes from CHANGELOG
+        run: |
+          V="${{ needs.version.outputs.version }}"
+          # Section for this version: from "## V" up to the next "## " heading.
+          awk -v v="$V" '
+            $0 ~ "^## "v"( |$)" {on=1; next}
+            on && /^## / {exit}
+            on {print}
+          ' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then echo "_No changelog entry for $V._" > notes.md; fi
+          cat >> notes.md <<'EOF'
+
+          ---
+          **Android**: download the APK on the phone and open it (allow installs from the browser once). If an earlier debug-signed build is installed, uninstall it first.
+
+          **macOS** (Apple silicon): unzip and open the app. The build is not notarized, so on first launch macOS will refuse; open System Settings → Privacy & Security and click **Open Anyway**.
+
+          **Linux** (x86-64). AppImage: `chmod +x Geas-<version>-x86_64.AppImage` and run it (needs GTK 3, libsecret and a keyring such as GNOME Keyring, and `libfuse2` on some systems); AppImageUpdate can update it in place. Tarball: extract and run `./geas`.
+
+          **CLI**: `geas-cli-<os>-<arch>-<version>` is a single binary; rename it to `geas`, `chmod +x` it and put it on your PATH, then run `geas setup`.
+
+          Full history: [CHANGELOG.md](https://github.com/drlholloway/geas/blob/main/CHANGELOG.md)
+          EOF
+      - uses: softprops/action-gh-release@v3
+        with:
+          name: Geas ${{ needs.version.outputs.version }}
+          body_path: notes.md
+          files: dist/*

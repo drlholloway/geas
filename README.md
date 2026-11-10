@@ -13,7 +13,8 @@ through a private GitHub repository instead of a hosted service.
 The core (task format, merge, sync) and the `geas` CLI work. The app sets
 itself up the same way as `geas setup`, syncs, adds, edits and deletes
 tasks, manages lists and tags, shows sync conflicts, has an Eisenhower
-matrix, and tracks orders and packages; packaging is next. See
+matrix, and tracks orders and packages. Releases
+are built by `.github/workflows/release.yml` from a `vX.Y.Z` tag. See
 `TODO.md` for the plan.
 
 ## CLI

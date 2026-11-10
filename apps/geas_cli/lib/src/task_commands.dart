@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 
 import 'command.dart';
 import 'context.dart';
+import 'order_commands.dart';
 import 'output.dart';
 
 const _priorityShorthands = {
@@ -252,6 +253,14 @@ class ShowCommand extends GeasCommand {
     };
     out.writeln(task.title);
     fields.forEach((key, value) => out.writeln('  ${key.padRight(8)}  $value'));
+    final order = task.order;
+    if (order != null) {
+      final lines = orderLines(order, now);
+      out.writeln('  ${'order'.padRight(8)}  ${lines.first}');
+      for (final line in lines.skip(1)) {
+        out.writeln('  ${''.padRight(8)}  $line');
+      }
+    }
     final body = task.body.trim();
     if (body.isNotEmpty) out.writeln('\n$body');
     return 0;

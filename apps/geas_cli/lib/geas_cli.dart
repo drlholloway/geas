@@ -8,6 +8,7 @@ import 'src/context.dart';
 import 'src/init_command.dart';
 import 'src/list_commands.dart';
 import 'src/matrix_command.dart';
+import 'src/order_commands.dart';
 import 'src/session.dart';
 import 'src/setup_command.dart';
 import 'src/task_commands.dart';
@@ -33,6 +34,9 @@ Future<int> runGeas(List<String> args, GeasContext context) async {
     AddCommand(context),
     LsCommand(context),
     MatrixCommand(context),
+    OrderCommand(context),
+    TrackCommand(context),
+    OrdersCommand(context),
     ShowCommand(context),
     DoneCommand(context),
     RmCommand(context),

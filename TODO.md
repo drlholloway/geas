@@ -276,11 +276,11 @@ Matrix:
 
 Orders and packages:
 
-- [ ] Core: `Order` and `Package` models parsed from and written to the
+- [x] Core: `Order` and `Package` models parsed from and written to the
       `order` frontmatter map, round-tripping like the other fields
-- [ ] Core: carrier detection from the tracking number's shape (USPS, UPS
+- [x] Core: carrier detection from the tracking number's shape (USPS, UPS
       `1Z…`, FedEx, DHL) and a tracking-page URL for each carrier
-- [ ] Core: queries for open orders grouped by status, and arriving today
+- [x] Core: queries for open orders grouped by status, and arriving today
       or this week by `eta`
 - [ ] App: an Orders view in the sidebar grouped into Ordered, Shipped, Out
       for delivery, Problem and Delivered (collapsed), with vendor, order
@@ -290,7 +290,7 @@ Orders and packages:
       add one)
 - [ ] Marking an order delivered offers to complete the task. A task with
       packages still in transit shows that on its row
-- [ ] CLI: `geas order <id> --vendor --number --status`,
+- [x] CLI: `geas order <id> --vendor --number --status`,
       `geas track <id> <tracking-number> [--carrier]` and `geas orders`
 - [ ] Packages arriving today show in the Today view
 

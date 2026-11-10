@@ -2,9 +2,11 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:yaml/yaml.dart';
+import 'package:yaml_edit/yaml_edit.dart';
 
 import 'checklist.dart';
 import 'due.dart';
+import 'order.dart';
 import 'priority.dart';
 import 'task_list.dart';
 import 'ulid.dart';
@@ -38,6 +40,7 @@ class Task {
     required DateTime updated,
     DateTime? completed,
     this.body = '',
+    this.order,
     this.frontmatter,
   })  : tags = List.unmodifiable(tags),
         created = _toSecond(created),
@@ -109,6 +112,7 @@ class Task {
       completed:
           completed == null ? null : _parseTimestamp(completed, 'completed'),
       body: body,
+      order: map['order'] == null ? null : Order.parse(map['order']),
       frontmatter: frontmatter,
     );
   }
@@ -135,6 +139,9 @@ class Task {
   /// Notes and checklist, as Markdown.
   final String body;
 
+  /// The order this task tracks, if any: the optional `order` map.
+  final Order? order;
+
   /// The frontmatter as it was read, or null for a task that hasn't been
   /// written yet. [encode] edits it in place, so comments, formatting and
   /// keys Geas doesn't know about survive.
@@ -150,15 +157,42 @@ class Task {
   String encode() {
     final fields = _fields();
     final source = frontmatter;
-    final yaml = source == null || source.trim().isEmpty
+    final fresh = source == null || source.trim().isEmpty;
+    final read = fresh
+        ? null
+        : Task._fromYaml(parseYamlMap(source, 'Frontmatter'), body: '');
+    var yaml = fresh
         ? emitYamlMap(fields)
-        : patchYamlMap(
-            source,
-            fields,
-            Task._fromYaml(parseYamlMap(source, 'Frontmatter'), body: '')
-                ._fields(),
-          );
+        : patchYamlMap(source, fields, read!._fields());
+    if (order != read?.order) yaml = _patchOrder(yaml, read?.order);
     return '---\n$yaml---\n$body';
+  }
+
+  /// [yaml] with the `order` map set to [order], changing only the keys
+  /// that differ from [previous], or removed if [order] is null. Optional,
+  /// so a task without one has no `order` key at all.
+  String _patchOrder(String yaml, Order? previous) {
+    final editor = YamlEditor(yaml);
+    final order = this.order;
+    if (order == null) {
+      editor.remove(['order']);
+    } else if (previous == null) {
+      editor.update(['order'], order.toYaml());
+    } else {
+      final now = order.toYaml(), before = previous.toYaml();
+      for (final key in {...before.keys, ...now.keys}) {
+        if (const DeepCollectionEquality().equals(now[key], before[key])) {
+          continue;
+        }
+        if (!now.containsKey(key)) {
+          editor.remove(['order', key]);
+        } else {
+          editor.update(['order', key], now[key]);
+        }
+      }
+    }
+    final text = editor.toString();
+    return text.endsWith('\n') ? text : '$text\n';
   }
 
   Map<String, Object?> _fields() => {
@@ -173,8 +207,8 @@ class Task {
         'completed': completed == null ? null : _formatTimestamp(completed!),
       };
 
-  /// A copy with the given fields replaced. Pass null for [due] or
-  /// [completed] to clear them. Callers set [updated] on every edit.
+  /// A copy with the given fields replaced. Pass null for [due],
+  /// [completed] or [order] to clear them. Callers set [updated] on every edit.
   Task copyWith({
     String? title,
     String? list,
@@ -184,6 +218,7 @@ class Task {
     DateTime? updated,
     Object? completed = _keep,
     String? body,
+    Object? order = _keep,
   }) =>
       Task(
         id: id,
@@ -198,6 +233,7 @@ class Task {
             ? this.completed
             : completed as DateTime?,
         body: body ?? this.body,
+        order: identical(order, _keep) ? this.order : order as Order?,
         frontmatter: frontmatter,
       );
 
@@ -225,11 +261,12 @@ class Task {
       other.created == created &&
       other.updated == updated &&
       other.completed == completed &&
-      other.body == body;
+      other.body == body &&
+      other.order == order;
 
   @override
   int get hashCode => Object.hash(id, title, list, Object.hashAll(tags), due,
-      priority, created, updated, completed, body);
+      priority, created, updated, completed, body, order);
 
   @override
   String toString() => 'Task($id, $title)';

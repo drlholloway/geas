@@ -24,6 +24,9 @@ build/geas setup                        # walks through repo, token, device
 build/geas add "Order 1N914s" -l pedals -t tayda -d "fri 5pm" -p high
 build/geas ls --today
 build/geas matrix                       # Do, Schedule, Delegate, Drop
+build/geas order S13H --vendor Tayda --number TE-1234567
+build/geas track S13H 9400111899223397846185 --eta fri
+build/geas orders                       # by status, with tracking links
 build/geas done S13H                    # ids are short suffixes from ls
 build/geas edit S13H                    # the Markdown file in $EDITOR
 build/geas --help

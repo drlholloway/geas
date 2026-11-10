@@ -7,8 +7,31 @@ import '../../state/store.dart';
 import '../shell/sidebar.dart';
 import '../tasks/task_tile.dart';
 
-/// Below this width the quadrants are tabs instead of a 2x2 grid.
+/// Below this width the quadrants start out as tabs instead of a 2x2 grid.
 const _gridBreakpoint = 640.0;
+
+/// How the matrix lays out its quadrants.
+enum MatrixLayout {
+  /// All four on one screen.
+  grid,
+
+  /// One at a time, as tabs.
+  tabs,
+}
+
+/// The layout chosen with the switch on the Matrix screen, or null to go
+/// by the width. Kept while the app runs.
+class MatrixLayoutNotifier extends Notifier<MatrixLayout?> {
+  @override
+  MatrixLayout? build() => null;
+
+  void choose(MatrixLayout layout) => state = layout;
+}
+
+final matrixLayoutProvider =
+    NotifierProvider<MatrixLayoutNotifier, MatrixLayout?>(
+      MatrixLayoutNotifier.new,
+    );
 
 /// The Eisenhower matrix: open tasks in four quadrants, one per priority.
 /// Dragging a task to another quadrant sets its priority.
@@ -91,18 +114,50 @@ class _MatrixScreenState extends ConsumerState<MatrixScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final grid = constraints.maxWidth >= _gridBreakpoint;
-        if (grid) {
+        final chosen = ref.watch(matrixLayoutProvider);
+        final layout =
+            chosen ??
+            (constraints.maxWidth >= _gridBreakpoint
+                ? MatrixLayout.grid
+                : MatrixLayout.tabs);
+        final layoutSwitch = Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: SegmentedButton<MatrixLayout>(
+            showSelectedIcon: false,
+            style: const ButtonStyle(visualDensity: VisualDensity.compact),
+            segments: const [
+              ButtonSegment(
+                value: MatrixLayout.grid,
+                icon: Icon(Icons.grid_view, size: 18),
+                tooltip: 'All four on one screen',
+              ),
+              ButtonSegment(
+                value: MatrixLayout.tabs,
+                icon: Icon(Icons.view_carousel_outlined, size: 18),
+                tooltip: 'One quadrant at a time',
+              ),
+            ],
+            selected: {layout},
+            onSelectionChanged: (s) =>
+                ref.read(matrixLayoutProvider.notifier).choose(s.single),
+          ),
+        );
+        // Tighter spacing when four boxes share a small screen.
+        final gap = constraints.maxWidth >= _gridBreakpoint ? 12.0 : 8.0;
+        if (layout == MatrixLayout.grid) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Matrix')),
+            appBar: AppBar(
+              title: const Text('Matrix'),
+              actions: [layoutSwitch],
+            ),
             drawer: narrow ? const Drawer(child: Sidebar()) : null,
             body: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              padding: EdgeInsets.fromLTRB(gap, 4, gap, gap),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   filters,
-                  const SizedBox(height: 12),
+                  SizedBox(height: gap),
                   Expanded(
                     child: Column(
                       children: [
@@ -111,13 +166,13 @@ class _MatrixScreenState extends ConsumerState<MatrixScreen> {
                           [Quadrant.delegate, Quadrant.drop],
                         ]) ...[
                           if (row.first != Quadrant.doFirst)
-                            const SizedBox(height: 12),
+                            SizedBox(height: gap),
                           Expanded(
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Expanded(child: quadrant(row[0])),
-                                const SizedBox(width: 12),
+                                SizedBox(width: gap),
                                 Expanded(child: quadrant(row[1])),
                               ],
                             ),
@@ -131,12 +186,13 @@ class _MatrixScreenState extends ConsumerState<MatrixScreen> {
             ),
           );
         }
-        // A phone: one quadrant per tab.
+        // One quadrant per tab.
         return DefaultTabController(
           length: Quadrant.values.length,
           child: Scaffold(
             appBar: AppBar(
               title: const Text('Matrix'),
+              actions: [layoutSwitch],
               bottom: TabBar(
                 tabs: [
                   for (final q in Quadrant.values)
@@ -213,37 +269,53 @@ class _QuadrantView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                child: Row(
-                  children: [
-                    Icon(Icons.flag, size: 18, color: tint),
-                    const SizedBox(width: 8),
-                    Text(
-                      quadrant.title,
-                      style: theme.textTheme.titleMedium!.copyWith(
-                        color: tint,
-                        fontWeight: FontWeight.w600,
-                      ),
+              LayoutBuilder(
+                builder: (context, box) {
+                  // A small box drops the subtitle.
+                  final compact = box.maxWidth < 280;
+                  return Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      compact ? 10 : 16,
+                      compact ? 8 : 12,
+                      compact ? 10 : 16,
+                      4,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        quadrant.subtitle,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall!.copyWith(
-                          color: colors.onSurfaceVariant,
+                    child: Row(
+                      children: [
+                        Icon(Icons.flag, size: 18, color: tint),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            quadrant.title,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium!.copyWith(
+                              color: tint,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
+                        SizedBox(width: compact ? 4 : 8),
+                        Expanded(
+                          child: compact
+                              ? const SizedBox.shrink()
+                              : Text(
+                                  quadrant.subtitle,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall!.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                        ),
+                        Text(
+                          '${tasks.length}',
+                          style: theme.textTheme.labelLarge!.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '${tasks.length}',
-                      style: theme.textTheme.labelLarge!.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
               Expanded(
                 child: tasks.isEmpty

@@ -94,4 +94,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Reply to the luthier'), findsOneWidget);
   });
+
+  testWidgets('the switch shows all four on a phone', (tester) async {
+    await openMatrix(tester, size: const Size(400, 800));
+    expect(find.text('Do 1'), findsOneWidget); // tabs at first
+    await tester.tap(find.byTooltip('All four on one screen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Do 1'), findsNothing);
+    for (final q in Quadrant.values) {
+      expect(quadrant(q), findsOneWidget);
+    }
+    expect(inQuadrant(Quadrant.doFirst, 'Order 1N914s'), findsOneWidget);
+    expect(inQuadrant(Quadrant.delegate, 'Reply to the luthier'), findsOne);
+  });
+
+  testWidgets('and one at a time on a wide screen', (tester) async {
+    await openMatrix(tester);
+    expect(quadrant(Quadrant.drop), findsOneWidget);
+    await tester.tap(find.byTooltip('One quadrant at a time'));
+    await tester.pumpAndSettle();
+    expect(find.text('Do 1'), findsOneWidget);
+    expect(quadrant(Quadrant.drop), findsNothing);
+  });
 }

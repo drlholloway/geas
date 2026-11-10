@@ -131,7 +131,9 @@ class _Detail extends StatelessWidget {
           ),
           const SizedBox(width: 4),
         ],
-        Text(text, style: style),
+        Flexible(
+          child: Text(text, style: style, overflow: TextOverflow.ellipsis),
+        ),
       ],
     );
   }

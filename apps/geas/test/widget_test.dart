@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geas_core/geas_core.dart';
 
 import 'harness.dart';
 
@@ -64,5 +67,30 @@ void main() {
     await tester.tap(find.text('Next 7 days'));
     await tester.pumpAndSettle();
     expect(find.text('Pick up bass strings'), findsOneWidget);
+  });
+
+  testWidgets('due soon is bold amber, overdue is red', (tester) async {
+    await pump(tester);
+    TextStyle? title(String text) => tester.widget<Text>(find.text(text)).style;
+    // Due tomorrow, within the default two days.
+    expect(title('Draft the Geas sync design')!.fontWeight, FontWeight.w600);
+    expect(title('Reply to the luthier'), isNull); // no date
+
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+    final error = Theme.of(tester.element(find.byType(Scaffold).last))
+        .colorScheme
+        .error;
+    expect(title('Renew car registration')!.color, error);
+  });
+
+  testWidgets('warn_days in geas.yaml sets how soon', (tester) async {
+    await app.seed();
+    app.github.push({repoConfigPath: utf8.encode('format: 1\nwarn_days: 0\n')});
+    await app.pump(tester);
+    expect(
+      tester.widget<Text>(find.text('Draft the Geas sync design')).style,
+      isNull,
+    );
   });
 }

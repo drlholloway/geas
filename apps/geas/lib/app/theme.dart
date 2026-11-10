@@ -25,3 +25,20 @@ Color? parseHexColor(String? text) {
   final value = int.tryParse(hex, radix: 16);
   return value == null ? null : Color(0xFF000000 | value);
 }
+
+/// Amber for a task close to its due date, readable on either theme.
+Color warningColor(ColorScheme colors) => colors.brightness == Brightness.light
+    ? const Color(0xFFB56A00)
+    : const Color(0xFFFFB74D);
+
+/// A task title's style for its [warning]: bold amber when approaching, the
+/// error color when overdue.
+TextStyle? dueWarningStyle(DueWarning warning, ColorScheme colors) =>
+    switch (warning) {
+      DueWarning.none => null,
+      DueWarning.approaching => TextStyle(
+        color: warningColor(colors),
+        fontWeight: FontWeight.w600,
+      ),
+      DueWarning.overdue => TextStyle(color: colors.error),
+    };

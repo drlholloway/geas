@@ -29,12 +29,16 @@ class TaskTile extends ConsumerWidget {
     final details = <Widget>[];
     final due = task.due;
     if (due != null) {
-      final overdue = !done && dueBucket(task, now) == DueBucket.overdue;
+      final warning = dueWarning(task, now, warnDays: store.warnDays);
       details.add(
         _Detail(
           icon: Icons.event,
           text: dueLabel(due, now),
-          color: overdue ? colors.error : null,
+          color: switch (warning) {
+            DueWarning.overdue => colors.error,
+            DueWarning.approaching => warningColor(colors),
+            DueWarning.none => null,
+          },
         ),
       );
     }
@@ -74,7 +78,10 @@ class TaskTile extends ConsumerWidget {
                 color: colors.onSurfaceVariant,
                 decoration: TextDecoration.lineThrough,
               )
-            : null,
+            : dueWarningStyle(
+                dueWarning(task, now, warnDays: store.warnDays),
+                colors,
+              ),
       ),
       subtitle: details.isEmpty
           ? null

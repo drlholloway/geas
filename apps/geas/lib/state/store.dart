@@ -16,6 +16,7 @@ class TaskStore {
     required this.tasks,
     required Iterable<TaskList> lists,
     this.loaded = true,
+    this.warnDays = defaultWarnDays,
   }) : lists = withInbox(lists);
 
   /// Before the local copy has been read.
@@ -28,6 +29,17 @@ class TaskStore {
 
   /// False until the local copy has been read.
   final bool loaded;
+
+  /// Days ahead a due date counts as approaching, from `geas.yaml`.
+  final int warnDays;
+
+  TaskStore copyWith({List<Task>? tasks, Iterable<TaskList>? lists}) =>
+      TaskStore(
+        tasks: tasks ?? this.tasks,
+        lists: lists ?? this.lists,
+        loaded: loaded,
+        warnDays: warnDays,
+      );
 
   TaskList? listById(String id) {
     for (final list in lists) {
@@ -84,7 +96,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
 
   void delete(String id) {
     if (_task(id) == null) return;
-    state = TaskStore(
+    state = state.copyWith(
       tasks: [
         for (final t in state.tasks)
           if (t.id != id) t,
@@ -120,7 +132,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
 
   /// Adds [list], or saves changes to it.
   void saveList(TaskList list) {
-    state = TaskStore(
+    state = state.copyWith(
       tasks: state.tasks,
       lists: [
         for (final l in state.lists)
@@ -142,7 +154,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
       for (final t in state.tasks)
         if (t.list == id) t.copyWith(list: inboxId, updated: now),
     ];
-    state = TaskStore(
+    state = state.copyWith(
       tasks: _replacing(moved),
       lists: [
         for (final l in state.lists)
@@ -201,7 +213,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
   void _saveAll(List<Task> tasks) {
     if (tasks.isEmpty) return;
     // Show them now; the disk catches up.
-    state = TaskStore(tasks: _replacing(tasks), lists: state.lists);
+    state = state.copyWith(tasks: _replacing(tasks), lists: state.lists);
     final now = _now;
     _enqueue(() async {
       for (final task in tasks) {
@@ -213,20 +225,23 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
 
   /// Runs [work] after everything queued before it, then shows the
   /// workspace as it stands.
-  Future<void> _enqueue(Future<void> Function() work) => _queue = _queue.then((
-    _,
-  ) async {
-    try {
-      await work();
-    } on Exception catch (e, stack) {
-      debugPrint('geas: $e\n$stack');
-    }
-    // Rebuilt for another repo since: the work still lands in this
-    // repo's copy, but the screen shows the new one.
-    final workspace = _workspace;
-    if (!ref.mounted || workspace == null) return;
-    state = TaskStore(tasks: workspace.tasks.toList(), lists: workspace.lists);
-  });
+  Future<void> _enqueue(Future<void> Function() work) =>
+      _queue = _queue.then((_) async {
+        try {
+          await work();
+        } on Exception catch (e, stack) {
+          debugPrint('geas: $e\n$stack');
+        }
+        // Rebuilt for another repo since: the work still lands in this
+        // repo's copy, but the screen shows the new one.
+        final workspace = _workspace;
+        if (!ref.mounted || workspace == null) return;
+        state = TaskStore(
+          tasks: workspace.tasks.toList(),
+          lists: workspace.lists,
+          warnDays: workspace.warnDays,
+        );
+      });
 }
 
 final taskStoreProvider = NotifierProvider<TaskStoreNotifier, TaskStore>(

@@ -76,11 +76,15 @@ class TaskView {
           TaskSection('No date', inBucket(DueBucket.noDate)),
         ];
       case ViewKind.today:
+        final arriving = <Task>{
+          for (final s in packagesArriving(store.tasks, now: now)) s.task,
+        };
         rest = [
           TaskSection(
             'Today',
             openTasks(store.tasks, now: now, window: DueWindow.today),
           ),
+          TaskSection('Packages arriving', arriving.toList()),
         ];
       case ViewKind.week:
         // One section per day.
@@ -108,6 +112,8 @@ class TaskView {
   };
 
   /// Open tasks counted next to this view in the sidebar.
-  int openCount(TaskStore store, DateTime now) =>
-      sections(store, now).fold(0, (n, s) => n + s.tasks.length);
+  int openCount(TaskStore store, DateTime now) => {
+    for (final s in sections(store, now))
+      for (final t in s.tasks) t.id,
+  }.length;
 }

@@ -282,17 +282,17 @@ Orders and packages:
       `1Z…`, FedEx, DHL) and a tracking-page URL for each carrier
 - [x] Core: queries for open orders grouped by status, and arriving today
       or this week by `eta`
-- [ ] App: an Orders view in the sidebar grouped into Ordered, Shipped, Out
+- [x] App: an Orders view in the sidebar grouped into Ordered, Shipped, Out
       for delivery, Problem and Delivered (collapsed), with vendor, order
       number, carrier, ETA and buttons that open the tracking pages
-- [ ] App: an order section in task detail to set the vendor, order number
+- [x] App: an order section in task detail to set the vendor, order number
       and status, and to add or remove packages (paste a tracking number to
       add one)
-- [ ] Marking an order delivered offers to complete the task. A task with
+- [x] Marking an order delivered offers to complete the task. A task with
       packages still in transit shows that on its row
 - [x] CLI: `geas order <id> --vendor --number --status`,
       `geas track <id> <tracking-number> [--carrier]` and `geas orders`
-- [ ] Packages arriving today show in the Today view
+- [x] Packages arriving today show in the Today view
 
 ## Phase 6: Packaging
 

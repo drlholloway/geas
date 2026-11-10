@@ -41,6 +41,28 @@ class Sidebar extends ConsumerWidget {
       );
     }
 
+    Widget page(String path, String title, IconData icon, {int count = 0}) =>
+        ListTile(
+          dense: true,
+          selected: location == path,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          leading: Icon(icon, size: 20),
+          title: Text(title),
+          trailing: count == 0 ? null : Text('$count'),
+          onTap: () {
+            final scaffold = Scaffold.maybeOf(context);
+            if (scaffold != null && scaffold.isDrawerOpen) {
+              scaffold.closeDrawer();
+            }
+            context.go(path);
+          },
+        );
+    final openOrders = store.tasks
+        .where(
+          (t) => !t.isCompleted && t.order != null && !t.order!.status.isDone,
+        )
+        .length;
+
     Widget heading(String text, {Widget? action}) => Padding(
       padding: EdgeInsets.fromLTRB(16, action == null ? 20 : 8, 4, 4),
       child: Row(
@@ -80,21 +102,12 @@ class Sidebar extends ConsumerWidget {
                 item(const TaskView(ViewKind.list, inboxId), Icons.inbox),
                 item(const TaskView(ViewKind.today), Icons.today),
                 item(const TaskView(ViewKind.week), Icons.date_range),
-                ListTile(
-                  dense: true,
-                  selected: location == '/matrix',
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  leading: const Icon(Icons.grid_view, size: 20),
-                  title: const Text('Matrix'),
-                  onTap: () {
-                    final scaffold = Scaffold.maybeOf(context);
-                    if (scaffold != null && scaffold.isDrawerOpen) {
-                      scaffold.closeDrawer();
-                    }
-                    context.go('/matrix');
-                  },
+                page('/matrix', 'Matrix', Icons.grid_view),
+                page(
+                  '/orders',
+                  'Orders',
+                  Icons.local_shipping_outlined,
+                  count: openOrders,
                 ),
                 heading(
                   'Lists',

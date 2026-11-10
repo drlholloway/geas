@@ -52,6 +52,22 @@ class TaskTile extends ConsumerWidget {
         ),
       );
     }
+    final order = task.order;
+    if (order != null && !done) {
+      final moving = order.inTransit;
+      final etas = [for (final p in moving) ?p.eta]..sort();
+      details.add(
+        _Detail(
+          icon: Icons.local_shipping_outlined,
+          text: etas.isNotEmpty
+              ? 'Arrives ${dayLabel(etas.first, now, short: true)}'
+              : moving.isNotEmpty
+              ? '${moving.length} in transit'
+              : order.status.label,
+          color: order.status == OrderStatus.problem ? colors.error : null,
+        ),
+      );
+    }
     if (checklist.isNotEmpty) {
       final ticked = checklist.where((i) => i.done).length;
       details.add(

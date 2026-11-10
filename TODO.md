@@ -242,7 +242,11 @@ end to end.
       Inbox; the Inbox can be renamed but not deleted), and rename or
       remove a tag across every task. `newList` and `replaceTag` are in core,
       and `geas lists add` uses `newList`
-- [ ] Conflicts view
+- [x] Conflicts view: each conflict sync resolved, with the kept and
+      set-aside values of the fields that collided and the full set-aside
+      file. Use the set-aside version (or, for an edit that beat a deletion,
+      delete it after all), or keep what sync kept. Reached from the sidebar
+      and settings
 - [x] Sync on launch, on resume, 5 seconds after edits, and on demand;
       the last sync status, conflicts and an expiring token show at the
       foot of the sidebar

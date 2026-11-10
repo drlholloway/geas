@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geas_core/geas_core.dart';
@@ -91,6 +93,27 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     );
     _enqueue(() async {
       await _workspace?.deleteTask(id);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  /// Saves [task] as given, as the current version, keeping its fields
+  /// apart from `updated`.
+  void restoreTask(Task task) => _save(task.copyWith(updated: _now));
+
+  /// Writes [text] to [path] in the working copy, or deletes the file if
+  /// null, then re-reads everything. For files that aren't tasks.
+  Future<void> restoreFile(String path, String? text) {
+    final session = ref.read(sessionProvider);
+    if (session == null) return Future.value();
+    return _enqueue(() async {
+      final area = session.store.working;
+      if (text == null) {
+        await area.delete(path);
+      } else {
+        await area.write(path, utf8.encode(text));
+      }
+      await _workspace?.reload();
       if (ref.mounted) ref.read(syncProvider.notifier).schedule();
     });
   }

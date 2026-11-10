@@ -296,6 +296,9 @@ Orders and packages:
 
 ## Phase 6: Packaging
 
+- [x] App icon: a check bound in a cord ring, drawn by
+      `packaging/icon/make_icon.py`; `just icons` regenerates the Android
+      and macOS icon sets
 - [ ] Android: signed release APK for sideloading
 - [ ] macOS: release `.app`
 - [ ] Linux: `Geas-<version>-x86_64.AppImage` plus `.zsync`, built in CI like

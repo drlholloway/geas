@@ -23,6 +23,11 @@ test:
 format:
     dart format .
 
+# redraw the icon masters and regenerate the platform icon sets
+icons:
+    python3 packaging/icon/make_icon.py
+    cd {{app}} && dart run flutter_launcher_icons
+
 # compile the CLI to build/geas
 cli:
     mkdir -p build

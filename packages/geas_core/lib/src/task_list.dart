@@ -100,3 +100,27 @@ List<TaskList> withInbox(Iterable<TaskList> lists) {
   if (sorted.any((l) => l.id == inboxId)) return sorted;
   return [TaskList.inbox, ...sorted];
 }
+
+/// A new list called [name], ordered after [lists], with an id made from
+/// the name that none of them has. Throws [FormatException] if the name has
+/// no letter or digit, or a list already has it.
+TaskList newList(String name, Iterable<TaskList> lists, {String? color}) {
+  name = name.trim();
+  final existing = withInbox(lists);
+  if (existing.any((l) => l.name.toLowerCase() == name.toLowerCase())) {
+    throw FormatException('There is already a list called "$name".');
+  }
+  final slug = name
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  if (slug.isEmpty) {
+    throw const FormatException('A list name needs a letter or digit.');
+  }
+  var id = slug;
+  for (var n = 2; existing.any((l) => l.id == id); n++) {
+    id = '$slug-$n';
+  }
+  final order = existing.fold(0, (o, l) => l.order > o ? l.order : o) + 1;
+  return TaskList(id: id, name: name, color: color, order: order);
+}

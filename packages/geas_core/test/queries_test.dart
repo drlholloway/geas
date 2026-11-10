@@ -129,4 +129,11 @@ void main() {
     ];
     expect(allTags(tasks), ['audio', 'pedals', 'Tayda']);
   });
+
+  test('replaceTag renames or removes a tag in any case', () {
+    expect(replaceTag(['Pedals', 'tayda'], 'pedals', 'builds'),
+        ['builds', 'tayda']);
+    expect(replaceTag(['pedals', 'tayda'], 'TAYDA', null), ['pedals']);
+    expect(replaceTag(['a', 'b'], 'a', 'B'), ['B']);
+  });
 }

@@ -61,4 +61,35 @@ void main() {
       expect(lists.map((l) => l.name), ['A', 'In tray']);
     });
   });
+
+  group('newList', () {
+    const lists = [
+      TaskList(id: 'pedals', name: 'Pedals', order: 3),
+      TaskList(id: 'home', name: 'Home', order: 1),
+    ];
+
+    test('makes an id from the name and goes last', () {
+      expect(
+        newList(' Bass & Guitar ', lists, color: '#4a90d9'),
+        const TaskList(
+          id: 'bass-guitar',
+          name: 'Bass & Guitar',
+          color: '#4a90d9',
+          order: 4,
+        ),
+      );
+    });
+
+    test('avoids an id in use', () {
+      expect(
+          newList('Pedals!', [...lists, const TaskList(id: 'x', name: 'X')]).id,
+          'pedals-2');
+    });
+
+    test('refuses a name in use or one with no letters', () {
+      expect(() => newList('pedals', lists), throwsFormatException);
+      expect(() => newList('Inbox', lists), throwsFormatException);
+      expect(() => newList('--', lists), throwsFormatException);
+    });
+  });
 }

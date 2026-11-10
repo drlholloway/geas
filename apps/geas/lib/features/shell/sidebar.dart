@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../state/store.dart';
+import '../lists/list_actions.dart';
 import '../tasks/task_view.dart';
 import 'sync_status.dart';
 
@@ -40,13 +41,20 @@ class Sidebar extends ConsumerWidget {
       );
     }
 
-    Widget heading(String text) => Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-      child: Text(
-        text,
-        style: theme.textTheme.labelMedium!.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
+    Widget heading(String text, {Widget? action}) => Padding(
+      padding: EdgeInsets.fromLTRB(16, action == null ? 20 : 8, 4, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.labelMedium!.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          ?action,
+        ],
       ),
     );
 
@@ -72,7 +80,22 @@ class Sidebar extends ConsumerWidget {
                 item(const TaskView(ViewKind.list, inboxId), Icons.inbox),
                 item(const TaskView(ViewKind.today), Icons.today),
                 item(const TaskView(ViewKind.week), Icons.date_range),
-                if (lists.isNotEmpty) heading('Lists'),
+                heading(
+                  'Lists',
+                  action: IconButton(
+                    tooltip: 'Add list',
+                    iconSize: 18,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () {
+                      final scaffold = Scaffold.maybeOf(context);
+                      if (scaffold != null && scaffold.isDrawerOpen) {
+                        scaffold.closeDrawer();
+                      }
+                      addList(context, ref);
+                    },
+                    icon: const Icon(Icons.add),
+                  ),
+                ),
                 for (final list in lists)
                   item(
                     TaskView(ViewKind.list, list.id),

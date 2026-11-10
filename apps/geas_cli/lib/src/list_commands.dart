@@ -61,25 +61,14 @@ class ListsCommand extends GeasCommand {
 
   Future<int> _add(Session session, String name, String? color) async {
     await session.pull();
-    final lists = session.workspace.lists;
-    if (lists.any((l) => l.name.toLowerCase() == name.toLowerCase())) {
-      throw CliException('There is already a list called "$name".');
+    final TaskList list;
+    try {
+      list = newList(name, session.workspace.lists, color: color);
+    } on FormatException catch (e) {
+      throw CliException(e.message);
     }
-    final slug = name
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
-        .replaceAll(RegExp(r'^-+|-+$'), '');
-    if (slug.isEmpty) {
-      throw const CliException('A list name needs a letter or digit.');
-    }
-    var id = slug;
-    for (var n = 2; lists.any((l) => l.id == id); n++) {
-      id = '$slug-$n';
-    }
-    final order = lists.fold(0, (o, l) => l.order > o ? l.order : o) + 1;
-    await session.workspace
-        .saveList(TaskList(id: id, name: name, color: color, order: order));
-    out.writeln('Added the list $name ($id).');
+    await session.workspace.saveList(list);
+    out.writeln('Added the list ${list.name} (${list.id}).');
     await session.push();
     return 0;
   }

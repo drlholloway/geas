@@ -95,6 +95,71 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     });
   }
 
+  /// Adds [list], or saves changes to it.
+  void saveList(TaskList list) {
+    state = TaskStore(
+      tasks: state.tasks,
+      lists: [
+        for (final l in state.lists)
+          if (l.id != list.id) l,
+        list,
+      ],
+    );
+    _enqueue(() async {
+      await _workspace?.saveList(list);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  /// Removes the list with [id], moving its tasks to the inbox.
+  void deleteList(String id) {
+    if (id == inboxId) return;
+    final now = _now;
+    final moved = [
+      for (final t in state.tasks)
+        if (t.list == id) t.copyWith(list: inboxId, updated: now),
+    ];
+    state = TaskStore(
+      tasks: _replacing(moved),
+      lists: [
+        for (final l in state.lists)
+          if (l.id != id) l,
+      ],
+    );
+    _enqueue(() async {
+      final workspace = _workspace;
+      if (workspace == null) return;
+      for (final task in moved) {
+        await workspace.saveTask(task, now: now);
+      }
+      await workspace.deleteList(id);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  /// Renames [from] to [to] on every task that has it, in any case, or
+  /// removes it if [to] is null.
+  void renameTag(String from, String? to) {
+    final now = _now;
+    final lower = from.toLowerCase();
+    _saveAll([
+      for (final t in state.tasks)
+        if (t.tags.any((tag) => tag.toLowerCase() == lower))
+          t.copyWith(tags: replaceTag(t.tags, from, to), updated: now),
+    ]);
+  }
+
+  /// Tasks as they are, with [changed] in place of the ones with their ids
+  /// (and added if new).
+  List<Task> _replacing(List<Task> changed) {
+    final byId = {for (final t in changed) t.id: t};
+    return [
+      for (final t in state.tasks)
+        if (!byId.containsKey(t.id)) t,
+      ...changed,
+    ];
+  }
+
   Task? _task(String id) {
     for (final task in state.tasks) {
       if (task.id == id) return task;
@@ -108,19 +173,17 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
   /// Re-reads the working copy, as after a sync.
   Future<void> reload() => _enqueue(() async => _workspace?.reload());
 
-  void _save(Task task) {
-    // Show it now; the disk catches up.
-    state = TaskStore(
-      tasks: [
-        for (final t in state.tasks)
-          if (t.id != task.id) t,
-        task,
-      ],
-      lists: state.lists,
-    );
+  void _save(Task task) => _saveAll([task]);
+
+  void _saveAll(List<Task> tasks) {
+    if (tasks.isEmpty) return;
+    // Show them now; the disk catches up.
+    state = TaskStore(tasks: _replacing(tasks), lists: state.lists);
     final now = _now;
     _enqueue(() async {
-      await _workspace?.saveTask(task, now: now);
+      for (final task in tasks) {
+        await _workspace?.saveTask(task, now: now);
+      }
       if (ref.mounted) ref.read(syncProvider.notifier).schedule();
     });
   }

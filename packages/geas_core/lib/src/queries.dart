@@ -69,6 +69,20 @@ List<String> allTags(Iterable<Task> tasks) {
     ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 }
 
+/// [tags] with [from] (in any case) replaced by [to], or removed if [to]
+/// is null. A tag already there isn't added twice.
+List<String> replaceTag(List<String> tags, String from, String? to) {
+  final lower = from.toLowerCase();
+  final out = <String>[];
+  for (final tag in tags) {
+    final next = tag.toLowerCase() == lower ? to : tag;
+    if (next == null) continue;
+    if (out.any((t) => t.toLowerCase() == next.toLowerCase())) continue;
+    out.add(next);
+  }
+  return out;
+}
+
 /// The default order: by due date (all-day before timed on the same day, no
 /// date last), then priority, highest first, then oldest first.
 int compareByDue(Task a, Task b) {

@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """Draw the Geas icon and write the platform masters.
 
-The picture: a check mark bound inside a cord ring, for a geas, an
-obligation you are bound to keep. Cream ink on the app's deep teal, with
-one amber knot where the cord is tied.
+The picture: an amber wax seal pressed with a cream check, for a geas, an
+obligation sealed and bound to be kept. On the app's deep teal.
 
 Outputs (in apps/geas/assets/icon/):
   icon_1024.png        full-bleed square, rounded corners baked in
   icon_android_bg.png  adaptive-icon background layer: the teal
-  icon_android_fg.png  adaptive-icon foreground layer: ring and check, in
+  icon_android_fg.png  adaptive-icon foreground layer: seal and check, in
                        the safe zone
   icon_macos.png       transparent canvas, Apple-style rounded square at
                        824/1024
@@ -27,8 +26,9 @@ OUT = os.path.join(
 
 TEAL_TOP = (36, 92, 87, 255)
 TEAL_BOTTOM = (24, 64, 61, 255)
-INK = (242, 232, 213, 255)    # cream
-KNOT = (224, 160, 48, 255)    # amber, the medium-priority color
+INK = (242, 232, 213, 255)      # cream
+WAX = (224, 160, 48, 255)       # amber, the medium-priority color
+PRESSED = (170, 112, 24, 255)   # the wax where the stamp pressed it
 
 
 def background(size):
@@ -45,7 +45,7 @@ def background(size):
 
 
 def foreground(size, scale=1.0):
-    """The ring, the check and the knot, centered, on transparency.
+    """The seal and its check, centered, on transparency.
 
     Drawn in a 1000-unit square; [scale] shrinks it about the center.
     """
@@ -61,24 +61,26 @@ def foreground(size, scale=1.0):
     def w(units):
         return max(1, round(units * scale * big / 1000))
 
-    # The cord ring, open at the upper right where the check breaks out.
-    r = 300
-    box = [p(500 - r, 500 - r), p(500 + r, 500 + r)]
-    draw.arc(box, start=-20, end=300, fill=INK, width=w(56))
+    # The wax, with a rippled edge where it spread under the stamp.
+    edge = []
+    for i in range(720):
+        t = 2 * math.pi * i / 720
+        r = 340 + 16 * math.sin(14 * t) + 6 * math.sin(5 * t + 1)
+        edge.append(p(500 + r * math.cos(t), 500 + r * math.sin(t)))
+    draw.polygon(edge, fill=WAX)
 
-    # The check: short stroke down, long stroke up and out of the ring.
-    pts = [p(330, 520), p(450, 640), p(760, 270)]
-    draw.line(pts, fill=INK, width=w(84), joint="curve")
-    for x, y in (pts[0], pts[-1]):
-        rr = w(84) / 2
-        draw.ellipse([x - rr, y - rr, x + rr, y + rr], fill=INK)
+    # The stamp's rim, pressed in.
+    draw.ellipse([p(225, 225), p(775, 775)], outline=PRESSED, width=w(18))
 
-    # The knot where the ring ends, tying the check in.
-    angle = math.radians(300)
-    kx, ky = 500 + r * math.cos(angle), 500 + r * math.sin(angle)
-    kx, ky = p(kx, ky)
-    kr = w(52)
-    draw.ellipse([kx - kr, ky - kr, kx + kr, ky + kr], fill=KNOT)
+    # The check, raised from the wax: a shadow below and to the right.
+    def check(pts, fill):
+        draw.line(pts, fill=fill, width=w(74), joint="curve")
+        for x, y in (pts[0], pts[-1]):
+            rr = w(74) / 2
+            draw.ellipse([x - rr, y - rr, x + rr, y + rr], fill=fill)
+
+    check([p(351, 518), p(466, 633), p(671, 383)], PRESSED)
+    check([p(345, 510), p(460, 625), p(665, 375)], INK)
 
     return img.resize((size, size), Image.LANCZOS)
 

@@ -5,6 +5,10 @@ GitHub Release notes.
 
 ## Unreleased
 
+### Changed
+- **A new icon:** a cream check pressed into an amber wax seal, the
+  obligation sealed. It replaces the check in a cord ring.
+
 ## 0.1.0 — 2026-11-09
 
 The first release: the app on Android, macOS and Linux, and the `geas` CLI,

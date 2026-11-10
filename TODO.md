@@ -302,7 +302,7 @@ Orders and packages:
 
 ## Phase 6: Packaging
 
-- [x] App icon: a check bound in a cord ring, drawn by
+- [x] App icon: a check pressed into an amber wax seal, drawn by
       `packaging/icon/make_icon.py`; `just icons` regenerates the Android
       and macOS icon sets
 - [x] Android: release APK for sideloading, signed with the key in the

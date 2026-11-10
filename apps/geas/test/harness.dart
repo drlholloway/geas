@@ -21,7 +21,13 @@ final now = DateTime(2026, 11, 8, 12);
 /// The app wired to fakes: a GitHub repo, a token store, a config and a
 /// local copy, all in memory.
 class TestApp {
-  final github = FakeGitHubClient(repo: repo);
+  TestApp({this.dataRepo = repo, this.hostname = 'testbox'});
+
+  /// The data repo, and this device's name.
+  final RepoRef dataRepo;
+  final String hostname;
+
+  late final github = FakeGitHubClient(repo: dataRepo);
   final tokens = MemoryTokenStore();
   final config = MemoryConfigStore();
   final local = MemoryStore();
@@ -29,8 +35,8 @@ class TestApp {
 
   /// The client for a token other than [goodToken]; by default one that
   /// can't see the repo.
-  GitHubClient Function(String token) otherToken = (_) =>
-      FakeGitHubClient(repo: repo)..access = null;
+  late GitHubClient Function(String token) otherToken = (_) =>
+      FakeGitHubClient(repo: dataRepo)..access = null;
 
   /// Every client is unreachable, as offline.
   var offline = false;
@@ -48,7 +54,7 @@ class TestApp {
       openedUrls.add(url);
       return true;
     },
-    hostname: 'testbox',
+    hostname: hostname,
   );
 
   /// The repo initialized with the sample tasks, and this device set up
@@ -63,10 +69,10 @@ class TestApp {
       for (final task in sample.tasks)
         taskPath(task, now): utf8.encode(task.encode()),
     }, message: 'sample');
-    tokens.tokens[repo] = goodToken;
+    tokens.tokens[dataRepo] = goodToken;
     config.config = AppConfig(
-      repo: repo,
-      device: 'testbox',
+      repo: dataRepo,
+      device: hostname,
       tokenExpires: tokenExpires,
     );
   }

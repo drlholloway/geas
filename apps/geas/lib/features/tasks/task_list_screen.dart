@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../state/store.dart';
+import '../lists/list_actions.dart';
 import '../shell/sidebar.dart';
 import 'task_tile.dart';
 import 'task_view.dart';
@@ -24,7 +25,10 @@ class TaskListScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(view.title(store))),
+      appBar: AppBar(
+        title: Text(view.title(store)),
+        actions: [ViewMenu(view: view)],
+      ),
       drawer: narrow ? const Drawer(child: Sidebar()) : null,
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),

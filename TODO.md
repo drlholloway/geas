@@ -237,7 +237,11 @@ end to end.
 - [x] Task detail: title, list, tags, due date with optional time, priority,
       checklist (tick, add, remove), notes (the whole body as Markdown), and
       delete; every change saves as it's made
-- [ ] List and tag management
+- [x] List and tag management: add a list from the sidebar (name and
+      color), edit or delete it from its screen (its tasks move to the
+      Inbox; the Inbox can be renamed but not deleted), and rename or
+      remove a tag across every task. `newList` and `replaceTag` are in core,
+      and `geas lists add` uses `newList`
 - [ ] Conflicts view
 - [x] Sync on launch, on resume, 5 seconds after edits, and on demand;
       the last sync status, conflicts and an expiring token show at the

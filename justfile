@@ -28,6 +28,10 @@ icons:
     python3 packaging/icon/make_icon.py
     cd {{app}} && dart run flutter_launcher_icons
 
+# draw the wiki screenshots from the app with sample data (build/screenshots)
+screenshots:
+    cd {{app}} && flutter test screenshots/
+
 # compile the CLI to build/geas
 cli:
     mkdir -p build

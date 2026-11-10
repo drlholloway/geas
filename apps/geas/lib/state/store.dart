@@ -70,6 +70,38 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
   void setChecklistItem(Task task, int line, {required bool done}) =>
       _save(task.setChecklistItem(line, done: done, now: _now));
 
+  /// Applies [change] to the task with [id] as it is now, if it's still
+  /// here and [change] changes anything.
+  void edit(String id, Task Function(Task task) change) {
+    final task = _task(id);
+    if (task == null) return;
+    final changed = change(task);
+    if (changed == task) return;
+    _save(changed.copyWith(updated: _now));
+  }
+
+  void delete(String id) {
+    if (_task(id) == null) return;
+    state = TaskStore(
+      tasks: [
+        for (final t in state.tasks)
+          if (t.id != id) t,
+      ],
+      lists: state.lists,
+    );
+    _enqueue(() async {
+      await _workspace?.deleteTask(id);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  Task? _task(String id) {
+    for (final task in state.tasks) {
+      if (task.id == id) return task;
+    }
+    return null;
+  }
+
   /// Waits for every edit so far to reach disk.
   Future<void> flush() => _queue;
 

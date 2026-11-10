@@ -234,9 +234,9 @@ end to end.
 - [x] Sidebar: Inbox, Today, Next 7 days, lists, tags
 - [x] Task list grouped into Overdue, Today, Upcoming and No date, with
       priority marks, a quick-add field and a collapsed Completed section
-- [ ] Task detail: title, list, tags, due date with optional time, priority,
-      checklist, notes (a read-only sheet with working checklist is in;
-      editing is not)
+- [x] Task detail: title, list, tags, due date with optional time, priority,
+      checklist (tick, add, remove), notes (the whole body as Markdown), and
+      delete; every change saves as it's made
 - [ ] List and tag management
 - [ ] Conflicts view
 - [x] Sync on launch, on resume, 5 seconds after edits, and on demand;

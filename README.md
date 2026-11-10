@@ -11,8 +11,8 @@ through a private GitHub repository instead of a hosted service.
 ## Status
 
 The core (task format, merge, sync) and the `geas` CLI work. The app sets
-itself up the same way as `geas setup`, syncs, and shows and adds tasks;
-editing a task, managing lists and the conflicts view are next. See
+itself up the same way as `geas setup`, syncs, and adds, edits and deletes
+tasks; managing lists and the conflicts view are next. See
 `TODO.md` for the plan.
 
 ## CLI

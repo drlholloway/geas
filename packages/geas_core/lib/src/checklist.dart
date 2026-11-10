@@ -68,3 +68,25 @@ String setChecklistLine(String body, int line, {required bool done}) {
   lines[line] = lines[line].replaceRange(mark, mark + 1, done ? 'x' : ' ');
   return lines.join('\n');
 }
+
+/// [body] with an unchecked item for [text]: after the last checklist item,
+/// or at the end after a blank line if there are none.
+String addChecklistItem(String body, String text) {
+  final item = '- [ ] ${text.trim()}';
+  final items = parseChecklist(body);
+  if (items.isEmpty) {
+    final notes = body.trimRight();
+    return notes.isEmpty ? '$item\n' : '$notes\n\n$item\n';
+  }
+  final lines = body.split('\n')..insert(items.last.line + 1, item);
+  return lines.join('\n');
+}
+
+/// [body] without the checklist item on [line]. Throws [ArgumentError] if
+/// that line isn't a checklist item.
+String removeChecklistLine(String body, int line) {
+  if (!parseChecklist(body).any((item) => item.line == line)) {
+    throw ArgumentError.value(line, 'line', 'not a checklist item');
+  }
+  return (body.split('\n')..removeAt(line)).join('\n');
+}

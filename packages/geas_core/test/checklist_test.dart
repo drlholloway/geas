@@ -47,4 +47,24 @@ void main() {
     expect(() => setChecklistLine(body, 5, done: true), throwsArgumentError);
     expect(() => setChecklistLine(body, 9, done: true), throwsArgumentError);
   });
+
+  group('addChecklistItem', () {
+    test('goes after the last item', () {
+      expect(
+        addChecklistItem('Notes.\n\n- [ ] a\n- [x] b\n\nMore.\n', ' c '),
+        'Notes.\n\n- [ ] a\n- [x] b\n- [ ] c\n\nMore.\n',
+      );
+    });
+
+    test('starts a checklist after the notes', () {
+      expect(addChecklistItem('Notes.\n', 'a'), 'Notes.\n\n- [ ] a\n');
+      expect(addChecklistItem('', 'a'), '- [ ] a\n');
+    });
+  });
+
+  test('removeChecklistLine drops only that item', () {
+    expect(removeChecklistLine('- [ ] a\n- [x] b\nNotes.\n', 1),
+        '- [ ] a\nNotes.\n');
+    expect(() => removeChecklistLine('Notes.\n', 0), throwsArgumentError);
+  });
 }

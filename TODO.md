@@ -319,8 +319,11 @@ Orders and packages:
       matching `apps/geas/pubspec.yaml` builds everything and publishes a
       GitHub Release with the version's CHANGELOG section; pull requests
       that touch packaging build without publishing
-- [ ] Android release key and its four repository secrets
-- [ ] Tag `v0.1.0`
+- [x] Android release key and its four repository secrets (the keystore
+      and its passwords are in `~/Documents/Geas-android-signing/`)
+- [x] Public repo, PolyForm Shield license, and a wiki on installing and
+      using Geas
+- [x] Tag `v0.1.0`
 
 ## Later
 

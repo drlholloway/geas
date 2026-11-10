@@ -299,12 +299,22 @@ Orders and packages:
 - [x] App icon: a check bound in a cord ring, drawn by
       `packaging/icon/make_icon.py`; `just icons` regenerates the Android
       and macOS icon sets
-- [ ] Android: signed release APK for sideloading
-- [ ] macOS: release `.app`
-- [ ] Linux: `Geas-<version>-x86_64.AppImage` plus `.zsync`, built in CI like
-      Sightings and Fretman. The token store needs `libsecret-1-0` at run
-      time (CI builds with `libsecret-1-dev`)
-- [ ] `CHANGELOG.md` and tagged releases
+- [x] Android: release APK for sideloading, signed with the key in the
+      `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
+      `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` secrets (debug-signed
+      until they're set; locally, `android/key.properties`)
+- [x] macOS: release `.app`, ad hoc signed and zipped
+- [x] Linux: `Geas-<version>-x86_64.AppImage` plus `.zsync` and a tarball,
+      built in CI like Sightings and Fretman. The token store needs
+      `libsecret-1-0` and a keyring at run time (CI builds with
+      `libsecret-1-dev`)
+- [x] CLI binaries for Linux x86-64 and macOS arm64 on each release
+- [x] `CHANGELOG.md` and `.github/workflows/release.yml`: a `vX.Y.Z` tag
+      matching `apps/geas/pubspec.yaml` builds everything and publishes a
+      GitHub Release with the version's CHANGELOG section; pull requests
+      that touch packaging build without publishing
+- [ ] Android release key and its four repository secrets
+- [ ] Tag `v0.1.0`
 
 ## Later
 

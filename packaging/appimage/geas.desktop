@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Geas
+GenericName=Task Manager
+Comment=Tasks, lists, a priority matrix and order tracking, synced through GitHub
+Exec=geas
+Icon=geas
+Terminal=false
+Categories=Office;ProjectManagement;
+Keywords=tasks;todo;checklist;eisenhower;orders;packages;

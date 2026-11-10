@@ -5,6 +5,13 @@ GitHub Release notes.
 
 ## Unreleased
 
+### Added
+- **An Android home-screen widget for the Eisenhower matrix:** the four
+  quadrants with their counts and tasks, with due-soon tasks in bold amber
+  and overdue ones in red. Tick a task off right there; it's finished and
+  synced in the background. Tap a task to open it, or a quadrant's title
+  to open the Matrix.
+
 ### Changed
 - **A new icon:** a cream check pressed into an amber wax seal, the
   obligation sealed. It replaces the check in a cord ring.

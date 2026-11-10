@@ -1,16 +1,25 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:home_widget/home_widget.dart';
 
 import 'app/router.dart';
 import 'app/theme.dart';
 import 'features/setup/setup_screen.dart';
+import 'features/shell/home_widget_driver.dart';
 import 'features/shell/sync_status.dart';
 import 'state/environment.dart';
+import 'state/home_widget.dart';
 import 'state/session.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final environment = await AppEnvironment.platform();
+  if (Platform.isAndroid) {
+    // Checkboxes on the home-screen widget run this in the background.
+    await HomeWidget.registerInteractivityCallback(homeWidgetCallback);
+  }
   runApp(
     ProviderScope(
       overrides: [environmentProvider.overrideWithValue(environment)],
@@ -48,7 +57,10 @@ class _GeasAppState extends ConsumerState<GeasApp> {
         theme: light,
         darkTheme: dark,
         routerConfig: _router,
-        builder: (context, child) => SyncDriver(child: child!),
+        builder: (context, child) => HomeWidgetDriver(
+          router: _router,
+          child: SyncDriver(child: child!),
+        ),
       );
     }
     return MaterialApp(

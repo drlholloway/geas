@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geas/main.dart';
 import 'package:geas/state/environment.dart';
+import 'package:geas/state/home_widget.dart';
 import 'package:geas/state/store.dart';
 import 'package:geas_core/geas_core.dart';
 import 'package:geas_core/testing.dart';
@@ -41,6 +43,9 @@ class TestApp {
   /// Every client is unreachable, as offline.
   var offline = false;
 
+  /// The Android home-screen widget; none unless a test sets one.
+  FakeHomeWidget? homeWidget;
+
   AppEnvironment get environment => AppEnvironment(
     config: config,
     tokens: tokens,
@@ -55,6 +60,7 @@ class TestApp {
       return true;
     },
     hostname: hostname,
+    homeWidget: homeWidget,
   );
 
   /// The repo initialized with the sample tasks, and this device set up
@@ -108,4 +114,40 @@ class UnreachableGitHub implements GitHubClient {
   @override
   Object? noSuchMethod(Invocation invocation) =>
       Future<Never>.error(const SocketException('Network is unreachable'));
+}
+
+/// A home-screen widget that keeps what it's shown and takes taps from the
+/// test.
+class FakeHomeWidget implements HomeWidgetHost {
+  /// Every snapshot shown, decoded, oldest first.
+  final shown = <Map<String, Object?>>[];
+
+  /// The link the app is launched with.
+  Uri? launchLink;
+
+  final _clicks = StreamController<Uri>.broadcast();
+
+  /// Taps [link] on the widget.
+  void tap(String link) => _clicks.add(Uri.parse(link));
+
+  /// Task titles in [quadrant] of the latest snapshot.
+  List<String> titlesIn(String quadrant) {
+    final quadrants = (shown.last['quadrants']! as List)
+        .cast<Map<String, Object?>>();
+    final q = quadrants.singleWhere((q) => q['key'] == quadrant);
+    return [
+      for (final t in (q['tasks']! as List).cast<Map<String, Object?>>())
+        t['title']! as String,
+    ];
+  }
+
+  @override
+  Future<void> show(String snapshot) async =>
+      shown.add((jsonDecode(snapshot) as Map).cast());
+
+  @override
+  Future<Uri?> launchedFrom() async => launchLink;
+
+  @override
+  Stream<Uri> get clicks => _clicks.stream;
 }

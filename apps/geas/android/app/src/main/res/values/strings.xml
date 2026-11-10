@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="matrix_widget_label">Eisenhower matrix</string>
+    <string name="matrix_widget_description">Your open tasks in Do, Schedule, Delegate and Drop. Tick one off from here.</string>
+</resources>

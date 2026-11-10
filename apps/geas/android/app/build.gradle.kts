@@ -3,6 +3,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.plugin.compose")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -51,6 +52,11 @@ android {
         }
     }
 
+    // The home-screen widget is drawn with Glance.
+    buildFeatures {
+        compose = true
+    }
+
     buildTypes {
         release {
             signingConfig = if (hasReleaseKey) signingConfigs.getByName("release")
@@ -67,4 +73,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("androidx.glance:glance-appwidget:1.2.0")
 }

@@ -16,6 +16,8 @@ are plain Markdown files in a repo you own.
 - **Eisenhower matrix:** Do, Schedule, Delegate and Drop, one per priority.
   Drag a task between quadrants to change its priority. Tasks due soon are
   bold amber; overdue ones are red.
+- **A home-screen widget on Android** with the four quadrants: tick tasks
+  off without opening the app.
 - **Order and package tracking:** vendor, order number and status on a task,
   packages with the carrier worked out from the tracking number and a link
   to its tracking page, and packages arriving today in Today.

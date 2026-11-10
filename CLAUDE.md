@@ -34,6 +34,7 @@ just test          # core tests + CLI tests + app widget tests
 just cli           # compile the CLI to build/geas
 just run-macos     # macOS is the dev target
 just run-android
+just run-demo      # sample tasks, in-memory GitHub; for emulators
 ```
 
 Shell PATH needs `/opt/homebrew/bin` for `flutter` and `just`. Run

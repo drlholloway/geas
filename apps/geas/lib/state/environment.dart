@@ -9,6 +9,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'home_widget.dart';
+
 /// Which data repo this device syncs with, and as what.
 class AppConfig {
   const AppConfig({
@@ -127,6 +129,7 @@ class AppEnvironment {
     required this.connect,
     required this.openUrl,
     required this.hostname,
+    this.homeWidget,
   });
 
   /// The real thing, with files under the app support directory.
@@ -145,6 +148,7 @@ class AppEnvironment {
       hostname: host.isEmpty || host == 'localhost'
           ? Platform.operatingSystem
           : host,
+      homeWidget: Platform.isAndroid ? AndroidHomeWidget() : null,
     );
   }
 
@@ -161,6 +165,9 @@ class AppEnvironment {
 
   /// The default device name.
   final String hostname;
+
+  /// The home-screen matrix widget, on Android.
+  final HomeWidgetHost? homeWidget;
 }
 
 final environmentProvider = Provider<AppEnvironment>(

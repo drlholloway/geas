@@ -5,10 +5,12 @@ GitHub Release notes.
 
 ## Unreleased
 
-## 0.1.0
+## 0.1.0 — 2026-11-09
 
 The first release: the app on Android, macOS and Linux, and the `geas` CLI,
-syncing through a private GitHub repo.
+syncing through a private GitHub repo. Licensed under PolyForm Shield
+1.0.0; how to install and use it is in the
+[wiki](https://github.com/drlholloway/geas/wiki).
 
 ### Added
 - **Tasks** as Markdown files with YAML frontmatter, one per task, in your
@@ -26,13 +28,15 @@ syncing through a private GitHub repo.
   checklist and notes; list and tag management. Syncs on launch, on
   resume, after edits and on demand.
 - **Eisenhower matrix:** Do, Schedule, Delegate and Drop, one per priority.
-  Drag a task to another quadrant to set its priority. Tasks due within two
-  days (or `warn_days` in `geas.yaml`) are bold amber everywhere; overdue
-  ones are red.
+  Drag a task to another quadrant to set its priority, and switch between
+  all four on one screen and one at a time. Tasks due within two days (or
+  `warn_days` in `geas.yaml`) are bold amber everywhere; overdue ones are
+  red.
 - **Orders and packages:** vendor, order number, status and packages on a
   task, with the carrier detected from the tracking number and a link to
-  its tracking page. An Orders view, packages arriving today in Today, and
-  an offer to finish the task when the order is delivered.
+  its tracking page. An Orders view with a button to add an order,
+  packages arriving today in Today, and an offer to finish the task when
+  the order is delivered.
 - **The CLI:** `geas setup`, `add`, `ls`, `show`, `done`, `edit`, `rm`,
   `lists`, `tags`, `matrix`, `order`, `track`, `orders` and `sync`, each
   syncing on its own unless given `--offline`.

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:geas_core/geas_core.dart';
 
 const _seed = Color(0xFF2E6F6A);

@@ -376,6 +376,9 @@ how often.
       stopping tracking
 - [x] CLI: `geas health` (`show`, `add`, `rm`) and `geas log <name>
       [--at] [--note] [--undo]`, also as `geas take`
+- [x] Reordering: drag a card by its handle in the Health view, or
+      `geas health move <name> <position>`; `moveTracker` in core
+      renumbers `order`
 - [ ] Wiki page and screenshots (`just screenshots` draws `health`,
       `health-tracker` and `phone-health`)
 

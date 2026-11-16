@@ -15,6 +15,8 @@ GitHub Release notes.
   and it shows when the next is, and counts in the sidebar once that has
   passed. Logs sync like tasks, and times logged on two devices never
   conflict.
+- **Reordering Health:** drag a card by its handle to put what you track
+  in the order you want; `geas health move <name> <position>` in the CLI.
 - **CLI:** `geas health` shows the same numbers, `geas health add` and
   `rm` manage what's tracked, and `geas log <name>` (or `geas take`) logs a
   time, with `--at "yesterday 9pm"`, `--note` and `--undo`.

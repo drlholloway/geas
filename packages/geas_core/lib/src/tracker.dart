@@ -227,6 +227,21 @@ List<Tracker> sortTrackers(Iterable<Tracker> trackers) => trackers.toList()
         : a.name.toLowerCase().compareTo(b.name.toLowerCase());
   });
 
+/// [trackers] with [id] moved to [index] (0 is first): the ones whose
+/// `order` has to change for that, renumbered from 1. Empty if nothing
+/// moves.
+List<Tracker> moveTracker(Iterable<Tracker> trackers, String id, int index) {
+  final sorted = sortTrackers(trackers);
+  final from = sorted.indexWhere((t) => t.id == id);
+  if (from < 0) return const [];
+  final moved = sorted.removeAt(from);
+  sorted.insert(index.clamp(0, sorted.length), moved);
+  return [
+    for (final (i, t) in sorted.indexed)
+      if (t.order != i + 1) t.copyWith(order: i + 1),
+  ];
+}
+
 /// A new tracker called [name], ordered after [trackers], with an id made
 /// from the name that none of them has. Throws [FormatException] if the
 /// name has no letter or digit, or a tracker already has it.

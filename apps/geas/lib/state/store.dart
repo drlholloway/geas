@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geas_core/geas_core.dart';
+import 'package:geas_core/geas_core.dart' as geas show moveTracker;
 
 import 'session.dart';
 import 'sync.dart';
@@ -220,6 +221,26 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     if (tracker == null) return;
     final changed = change(tracker);
     if (changed != tracker) saveTracker(changed);
+  }
+
+  /// Moves the tracker with [id] to [index] in the Health view.
+  void moveTracker(String id, int index) {
+    final changed = geas.moveTracker(state.trackers, id, index);
+    if (changed.isEmpty) return;
+    final ids = {for (final t in changed) t.id};
+    state = state.copyWith(
+      trackers: [
+        for (final t in state.trackers)
+          if (!ids.contains(t.id)) t,
+        ...changed,
+      ],
+    );
+    _enqueue(() async {
+      for (final tracker in changed) {
+        await _workspace?.saveTracker(tracker);
+      }
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
   }
 
   /// Logs the tracker with [id] at [at], or now, and returns the entry.

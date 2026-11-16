@@ -123,19 +123,28 @@ class HealthScreen extends ConsumerWidget {
                 ),
               ),
             )
-          : ListView(
+          : ReorderableListView(
               // Room for the add button over the last card.
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 88),
+              // Each card has its own handle, so a tap or scroll that starts
+              // on a card never picks it up.
+              buildDefaultDragHandles: false,
+              proxyDecorator: (child, _, _) => child,
+              onReorderItem: (from, to) => ref
+                  .read(taskStoreProvider.notifier)
+                  .moveTracker(trackers[from].id, to),
               children: [
-                for (final tracker in trackers)
+                for (final (index, tracker) in trackers.indexed)
                   Align(
+                    key: ValueKey(tracker.id),
                     alignment: Alignment.topLeft,
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 640),
                       child: _TrackerCard(
-                        key: ValueKey(tracker.id),
                         tracker: tracker,
                         now: now,
+                        index: index,
+                        movable: trackers.length > 1,
                       ),
                     ),
                   ),
@@ -146,10 +155,20 @@ class HealthScreen extends ConsumerWidget {
 }
 
 class _TrackerCard extends ConsumerWidget {
-  const _TrackerCard({super.key, required this.tracker, required this.now});
+  const _TrackerCard({
+    required this.tracker,
+    required this.now,
+    required this.index,
+    required this.movable,
+  });
 
   final Tracker tracker;
   final DateTime now;
+
+  /// Where it is in the list, for its drag handle; [movable] unless it's
+  /// the only one.
+  final int index;
+  final bool movable;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -166,13 +185,31 @@ class _TrackerCard extends ConsumerWidget {
       child: InkWell(
         onTap: () => context.go('/health/${tracker.id}'),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+          padding: EdgeInsets.fromLTRB(movable ? 4 : 16, 12, 12, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (movable)
+                    ReorderableDragStartListener(
+                      index: index,
+                      child: Tooltip(
+                        message: 'Drag to reorder',
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.grab,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(4, 2, 8, 8),
+                            child: Icon(
+                              Icons.drag_indicator,
+                              size: 20,
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   Padding(
                     padding: const EdgeInsets.only(top: 2, right: 12),
                     child: Icon(
@@ -210,7 +247,15 @@ class _TrackerCard extends ConsumerWidget {
               ),
               if (!sensor && tracker.entries.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                DailyBars(tracker: tracker, now: now, days: 14, height: 32),
+                Padding(
+                  padding: EdgeInsets.only(left: movable ? 12 : 0),
+                  child: DailyBars(
+                    tracker: tracker,
+                    now: now,
+                    days: 14,
+                    height: 32,
+                  ),
+                ),
               ],
             ],
           ),

@@ -102,6 +102,25 @@ void main() {
     });
   });
 
+  test('moving a tracker renumbers only what has to change', () {
+    final a = newTracker('A', const []);
+    final b = newTracker('B', [a]);
+    final c = newTracker('C', [a, b]);
+    List<String> after(List<Tracker> changed) => sortTrackers([
+          for (final t in [a, b, c])
+            changed.where((x) => x.id == t.id).firstOrNull ?? t,
+        ]).map((t) => t.name).toList();
+
+    final up = moveTracker([a, b, c], 'c', 0);
+    expect(after(up), ['C', 'A', 'B']);
+    expect(up, hasLength(3));
+    final down = moveTracker([a, b, c], 'b', 99);
+    expect(after(down), ['A', 'C', 'B']);
+    expect(down.map((t) => t.id), ['c', 'b']);
+    expect(moveTracker([a, b, c], 'b', 1), isEmpty);
+    expect(moveTracker([a, b, c], 'nope', 0), isEmpty);
+  });
+
   group('stats', () {
     final now = _at(15, 12);
 

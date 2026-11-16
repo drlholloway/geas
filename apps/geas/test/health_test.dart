@@ -157,6 +157,32 @@ void main() {
     expect(tracker.entries, hasLength(3));
   });
 
+  testWidgets('dragging a card by its handle reorders the list', (
+    tester,
+  ) async {
+    await openHealth(tester);
+    double top(String name) => tester.getTopLeft(find.text(name)).dy;
+    expect(top('Metformin'), lessThan(top('CGM sensor')));
+
+    final drag = await tester.startGesture(
+      tester.getCenter(find.byTooltip('Drag to reorder').first),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    for (var i = 0; i < 11; i++) {
+      await drag.moveBy(const Offset(0, 20));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    await drag.up();
+    await tester.pumpAndSettle();
+    expect(top('CGM sensor'), lessThan(top('Metformin')));
+    // The cards still open and log.
+    expect(find.widgetWithText(FilledButton, 'Take'), findsOneWidget);
+    await sync(tester);
+    expect(remote('cgm-sensor')!.order, 1);
+    expect(remote('metformin')!.order, 2);
+    expect(remote('metformin')!.entries, isNotEmpty);
+  });
+
   testWidgets('stop tracking deletes the log everywhere', (tester) async {
     await openHealth(tester);
     await tester.tap(find.text('Metformin'));

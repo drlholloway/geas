@@ -100,6 +100,19 @@ void main() {
     expect(await geas(['health', 'add', 'X', '--kind', 'pill']), 64);
   });
 
+  test('move reorders what\'s tracked', () async {
+    await run(['health', 'add', 'Metformin']);
+    await run(['health', 'add', 'CGM', 'sensor', '--kind', 'sensor']);
+    await run(['health', 'add', 'Vitamin D']);
+    expect(await run(['health', 'move', 'vitamin', '1']),
+        'Vitamin D, Metformin, CGM sensor\n');
+    expect(await run(['health', 'move', 'met', '9']),
+        'Vitamin D, CGM sensor, Metformin\n');
+    expect(remote('metformin').order, 3);
+    expect(remote('vitamin-d').order, 1);
+    expect(await geas(['health', 'move', 'met', 'first']), 64);
+  });
+
   test('rm asks before dropping a log', () async {
     await run(['health', 'add', 'Metformin']);
     await run(['log', 'met']);

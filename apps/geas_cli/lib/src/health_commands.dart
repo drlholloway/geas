@@ -64,13 +64,14 @@ class HealthCommand extends GeasCommand {
 
   @override
   final description = 'Show what\'s tracked (medications, CGM sensors) and '
-      'how often each is logged, or add or remove one. Log a time with '
+      'how often each is logged, or add, reorder or remove one. Log a time with '
       '`geas log`.';
 
   @override
   String get invocation => 'geas health\n'
       '       geas health show <name> [-n <count>]\n'
       '       geas health add <name> [--kind med|sensor] [--every <interval>]\n'
+      '       geas health move <name> <position>\n'
       '       geas health rm <name>';
 
   @override
@@ -82,6 +83,8 @@ class HealthCommand extends GeasCommand {
         _show(session, words.join(' ')),
       ['add', ...final words] when words.isNotEmpty =>
         _add(session, words.join(' ')),
+      ['move', ...final words, final position] when words.isNotEmpty =>
+        _move(session, words.join(' '), position),
       ['rm', ...final words] when words.isNotEmpty =>
         _remove(session, words.join(' ')),
       _ => usageException('Unknown or incomplete `geas health` command.'),
@@ -171,6 +174,23 @@ class HealthCommand extends GeasCommand {
     out.writeln('Tracking ${tracker.name} (${tracker.id}). Log a time with '
         '`geas log ${tracker.id}`.');
     await session.push();
+    return 0;
+  }
+
+  Future<int> _move(Session session, String input, String position) async {
+    final place = int.tryParse(position);
+    if (place == null || place < 1) {
+      usageException('Give the position as a number; 1 is first.');
+    }
+    await session.pull();
+    final tracker = resolveTracker(session, input);
+    final changed =
+        moveTracker(session.workspace.trackers, tracker.id, place - 1);
+    for (final t in changed) {
+      await session.workspace.saveTracker(t);
+    }
+    out.writeln(session.workspace.trackers.map((t) => t.name).join(', '));
+    if (changed.isNotEmpty) await session.push();
     return 0;
   }
 

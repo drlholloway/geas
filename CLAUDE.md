@@ -16,9 +16,8 @@ Pub workspace, mirroring FretboardTrainer and Sightings (DC75Workbench) in
 the sibling directories.
 
 - `packages/geas_core/` — pure Dart, no Flutter: task, list and health
-  tracker models, the
-  Markdown + YAML file format, three-way merge, the GitHub sync client and the
-  local cache. Everything that matters lives here and is unit tested. Shared
+  tracker models, the Markdown + YAML file format, three-way merge, the
+  GitHub sync client and the local cache. Everything that matters lives here and is unit tested. Shared
   by the app and the CLI.
 - `apps/geas_cli/` — Dart CLI (`geas`), built with `dart compile exe`.
 - `apps/geas/` — Flutter app (Android, macOS, Linux). Riverpod for state,

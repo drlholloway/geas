@@ -43,6 +43,7 @@ Plan and status. Check items off as they land; move anything cut from v1 to
 geas-data/
   geas.yaml                 format: 1
   lists/<id>.yaml           id, name, color, order
+  trackers/<id>.md          a medication or sensor and every time it was logged
   tasks/<id>.md             open and recently completed tasks
   archive/<yyyy>/<id>.md    tasks completed more than 30 days ago
 ```
@@ -95,6 +96,26 @@ order:
       status: in-transit       # optional, per package
 ```
 
+Health tracking is one file per thing tracked, `trackers/<id>.md`:
+frontmatter, then a list item for each time it was taken or replaced. A new
+directory that older builds leave alone, so `format` stays 1:
+
+```markdown
+---
+id: cgm-sensor                 # a slug, like a list id
+name: CGM sensor
+kind: sensor                   # med (the default) | sensor
+every: 10d                     # optional: 12h, 10d, 2w; next is due this
+order: 2                       # long after the last
+---
+- 2026-10-26T09:05:00-05:00
+- 2026-11-04T09:05:00-06:00 the old one fell off early
+```
+
+Each entry is a local time with its offset, then an optional note. Seconds
+and the offset may be left out when writing one by hand. Lines that aren't
+entries are kept as notes.
+
 ## Merge and sync
 
 Each device keeps `base/` (the data as of the last successful sync, plus that
@@ -110,6 +131,9 @@ Merge per task, three-way against base:
   are a conflict, handled as above.
 - Edited on one side, deleted on the other: keep the edited version and flag
   it.
+- Trackers: the frontmatter merges key by key (the remote wins a collision)
+  and the log merges as a set of lines, so times logged on two devices are
+  all kept and never conflict.
 
 Sync loop:
 
@@ -331,7 +355,34 @@ Orders and packages:
 - [x] Tag `v0.1.0`
 - [x] Tag `v0.2.0`: the Android matrix widget, About, the new icon
 
+## Phase 7: Health tracking (2026-11-15)
+
+Logging each time a medication is taken or a CGM sensor is replaced, to see
+how often.
+
+- [x] Core: `Tracker` and `TrackerEntry`, the `trackers/<id>.md` format
+      (round-tripping unknown keys like tasks and lists), `newTracker`, and
+      a set merge of the log in `mergeTrees`
+- [x] Core: `TrackerStats` (last logged, today, per day over 7 and 30 days,
+      average time between, next due from `every`), `dailyCounts`,
+      `entryGaps` and `parseLogTime`
+- [x] App: a Health view in the sidebar with a card per tracker: when it
+      was last logged, how often, a bar for each of the last 14 days for a
+      medication or the day of wear for a sensor, and a Take or Replace
+      button that logs now, with undo. The sidebar counts trackers past due
+- [x] App: a tracker's own screen with a bar per day (30 for a medication,
+      90 for a sensor), every time logged with the time since the one
+      before, removing a time, logging an earlier time, editing and
+      stopping tracking
+- [x] CLI: `geas health` (`show`, `add`, `rm`) and `geas log <name>
+      [--at] [--note] [--undo]`, also as `geas take`
+- [ ] Wiki page and screenshots (`just screenshots` draws `health`,
+      `health-tracker` and `phone-health`)
+
 ## Later
+
+- Health: reminders when a dose or sensor is due, doses with amounts, and
+  the Android widget
 
 - Reminders as local notifications on each device. Dismissals sync, so a
   device that hasn't synced yet may still fire one.

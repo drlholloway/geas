@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geas_core/geas_core.dart';
 import 'package:go_router/go_router.dart';
@@ -44,7 +44,7 @@ class Sidebar extends ConsumerWidget {
     Widget page(String path, String title, IconData icon, {int count = 0}) =>
         ListTile(
           dense: true,
-          selected: location == path,
+          selected: location == path || location.startsWith('$path/'),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           leading: Icon(icon, size: 20),
           title: Text(title),
@@ -61,6 +61,10 @@ class Sidebar extends ConsumerWidget {
         .where(
           (t) => !t.isCompleted && t.order != null && !t.order!.status.isDone,
         )
+        .length;
+
+    final healthDue = store.trackers
+        .where((t) => TrackerStats.of(t, now).nextDue?.isBefore(now) ?? false)
         .length;
 
     Widget heading(String text, {Widget? action}) => Padding(
@@ -108,6 +112,12 @@ class Sidebar extends ConsumerWidget {
                   'Orders',
                   Icons.local_shipping_outlined,
                   count: openOrders,
+                ),
+                page(
+                  '/health',
+                  'Health',
+                  Icons.medication_outlined,
+                  count: healthDue,
                 ),
                 heading(
                   'Lists',

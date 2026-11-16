@@ -2,6 +2,8 @@ import 'package:geas_core/geas_core.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/conflicts/conflicts_screen.dart';
+import '../features/health/health_screen.dart';
+import '../features/health/tracker_screen.dart';
 import '../features/matrix/matrix_screen.dart';
 import '../features/orders/orders_screen.dart';
 import '../features/settings/settings_screen.dart';
@@ -41,6 +43,11 @@ GoRouter createRouter() => GoRouter(
           ),
         ),
         GoRoute(path: '/orders', builder: (c, s) => const OrdersScreen()),
+        GoRoute(path: '/health', builder: (c, s) => const HealthScreen()),
+        GoRoute(
+          path: '/health/:id',
+          builder: (c, s) => TrackerScreen(id: s.pathParameters['id']!),
+        ),
         GoRoute(path: '/matrix', builder: (c, s) => const MatrixScreen()),
         GoRoute(path: '/settings', builder: (c, s) => const SettingsScreen()),
         GoRoute(path: '/conflicts', builder: (c, s) => const ConflictsScreen()),

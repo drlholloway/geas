@@ -5,6 +5,20 @@ GitHub Release notes.
 
 ## Unreleased
 
+### Added
+- **Health:** a new view for logging each time you take a medication or
+  replace a CGM sensor. Each one shows when it was last logged and how
+  often: doses today and per day over the last week and month, or for a
+  sensor the day of wear and how long each has lasted on average. One tap
+  logs it now (with undo), earlier times can be added, and every time is
+  listed with the gap since the one before. Set how often something is due
+  and it shows when the next is, and counts in the sidebar once that has
+  passed. Logs sync like tasks, and times logged on two devices never
+  conflict.
+- **CLI:** `geas health` shows the same numbers, `geas health add` and
+  `rm` manage what's tracked, and `geas log <name>` (or `geas take`) logs a
+  time, with `--at "yesterday 9pm"`, `--note` and `--undo`.
+
 ## 0.2.0 — 2026-11-10
 
 An Android home-screen widget for the Eisenhower matrix, an About section

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geas/main.dart';
@@ -80,6 +80,8 @@ class TestApp {
           'lists/${list.id}.yaml': utf8.encode(list.encode()),
       for (final task in sample.tasks)
         taskPath(task, now): utf8.encode(task.encode()),
+      for (final tracker in sample.trackers)
+        trackerPath(tracker.id): utf8.encode(tracker.encode()),
     }, message: 'sample');
     tokens.tokens[dataRepo] = goodToken;
     config.config = AppConfig(
@@ -92,7 +94,8 @@ class TestApp {
   /// Task titles in the remote repo.
   List<String> remoteTitles() => [
     for (final MapEntry(:key, :value) in github.files.entries)
-      if (key.endsWith('.md')) Task.parse(utf8.decode(value)).title,
+      if (key.endsWith('.md') && !isTrackerPath(key))
+        Task.parse(utf8.decode(value)).title,
   ];
 
   Future<void> pump(

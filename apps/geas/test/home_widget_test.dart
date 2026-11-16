@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geas/state/home_widget.dart';
 import 'package:geas_core/geas_core.dart';
@@ -19,7 +19,8 @@ void main() {
 
   Task remote(String title) => [
     for (final MapEntry(:key, :value) in app.github.files.entries)
-      if (key.endsWith('.md')) Task.parse(utf8.decode(value)),
+      if (key.endsWith('.md') && !isTrackerPath(key))
+        Task.parse(utf8.decode(value)),
   ].singleWhere((t) => t.title == title);
 
   /// Lets the app settle and redraw the widget.

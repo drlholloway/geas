@@ -10,7 +10,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geas/main.dart';
 import 'package:geas/state/environment.dart';
@@ -46,6 +46,8 @@ Future<void> main() async {
           'lists/${list.id}.yaml': utf8.encode(list.encode()),
       for (final task in sample.tasks)
         taskPath(task, now): utf8.encode(task.encode()),
+      for (final tracker in sample.trackers)
+        trackerPath(tracker.id): utf8.encode(tracker.encode()),
     }, message: 'sample');
   }
   await real.config.save(const AppConfig(repo: _repo, device: 'emulator'));

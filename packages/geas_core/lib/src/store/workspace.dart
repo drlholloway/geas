@@ -5,9 +5,10 @@ import '../matrix.dart';
 import '../repo_config.dart';
 import '../task.dart';
 import '../task_list.dart';
+import '../tracker.dart';
 import 'file_area.dart';
 
-/// The tasks and lists in a device's working copy, indexed in memory. The
+/// The tasks, lists and trackers in a device's working copy, indexed in memory. The
 /// app and CLI read and edit through this; sync works on the files.
 class Workspace {
   Workspace._(this._area);
@@ -24,6 +25,7 @@ class Workspace {
   final _tasks = <String, Task>{};
   final _taskPaths = <String, String>{};
   final _lists = <String, TaskList>{};
+  final _trackers = <String, Tracker>{};
   final _problems = <String, String>{};
   RepoConfig? _config;
 
@@ -31,6 +33,11 @@ class Workspace {
 
   /// In display order, inbox included.
   List<TaskList> get lists => withInbox(_lists.values);
+
+  /// In display order.
+  List<Tracker> get trackers => sortTrackers(_trackers.values);
+
+  Tracker? tracker(String id) => _trackers[id];
 
   /// Files that couldn't be read, by path, with the reason.
   Map<String, String> get problems => Map.unmodifiable(_problems);
@@ -48,6 +55,7 @@ class Workspace {
     _tasks.clear();
     _taskPaths.clear();
     _lists.clear();
+    _trackers.clear();
     _problems.clear();
     _config = null;
     _index(await _area.readAll());
@@ -86,6 +94,18 @@ class Workspace {
     await _area.delete(_listPath(id));
   }
 
+  Future<Tracker> saveTracker(Tracker tracker) async {
+    final text = tracker.encode();
+    await _area.write(trackerPath(tracker.id), utf8.encode(text));
+    return _trackers[tracker.id] = Tracker.parse(text);
+  }
+
+  /// Removes the tracker and its log.
+  Future<void> deleteTracker(String id) async {
+    _trackers.remove(id);
+    await _area.delete(trackerPath(id));
+  }
+
   static String _listPath(String id) => 'lists/$id.yaml';
 
   void _index(Map<String, List<int>> files) {
@@ -102,10 +122,14 @@ class Workspace {
           (path.startsWith('tasks/') || path.startsWith('archive/')) &&
               path.endsWith('.md');
       final isList = path.startsWith('lists/') && path.endsWith('.yaml');
-      if (!isTask && !isList) return;
+      final isTracker = isTrackerPath(path);
+      if (!isTask && !isList && !isTracker) return;
       try {
         final text = utf8.decode(bytes);
-        if (isTask) {
+        if (isTracker) {
+          final tracker = Tracker.parse(text);
+          _trackers[tracker.id] = tracker;
+        } else if (isTask) {
           final task = Task.parse(text);
           final other = _taskPaths[task.id];
           if (other != null) {

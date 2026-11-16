@@ -9,7 +9,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -134,13 +134,33 @@ void main() {
     await shot(tester, 'order-sheet');
   });
 
+  shotTest('health', (tester) async {
+    await app.seed();
+    await pump(tester, app);
+    await go(tester, 'Health');
+    await shot(tester, 'health');
+    await tester.tap(find.text('Metformin'));
+    await tester.pumpAndSettle();
+    await shot(tester, 'health-tracker');
+  });
+
+  shotTest('health on a phone', (tester) async {
+    await app.seed();
+    await pump(tester, app, size: phone);
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
+    await go(tester, 'Health');
+    await shot(tester, 'phone-health');
+  });
+
   shotTest('conflicts', (tester) async {
     await app.seed();
     await pump(tester, app);
     // This device and another both retitle a task; this one is newer.
     final MapEntry(key: path, value: task) = [
       for (final MapEntry(:key, :value) in app.github.files.entries)
-        if (key.endsWith('.md')) MapEntry(key, Task.parse(utf8.decode(value))),
+        if (key.endsWith('.md') && !isTrackerPath(key))
+          MapEntry(key, Task.parse(utf8.decode(value))),
     ].singleWhere((e) => e.value.title == 'Reply to the luthier');
     ProviderScope.containerOf(tester.element(find.byType(GeasApp)))
         .read(taskStoreProvider.notifier)

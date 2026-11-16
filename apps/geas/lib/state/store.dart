@@ -15,9 +15,11 @@ class TaskStore {
   TaskStore({
     required this.tasks,
     required Iterable<TaskList> lists,
+    Iterable<Tracker> trackers = const [],
     this.loaded = true,
     this.warnDays = defaultWarnDays,
-  }) : lists = withInbox(lists);
+  }) : lists = withInbox(lists),
+       trackers = sortTrackers(trackers);
 
   /// Before the local copy has been read.
   TaskStore.loading() : this(tasks: const [], lists: const [], loaded: false);
@@ -27,19 +29,33 @@ class TaskStore {
   /// In display order, inbox included.
   final List<TaskList> lists;
 
+  /// What the Health view logs (medications, sensors), in display order.
+  final List<Tracker> trackers;
+
   /// False until the local copy has been read.
   final bool loaded;
 
   /// Days ahead a due date counts as approaching, from `geas.yaml`.
   final int warnDays;
 
-  TaskStore copyWith({List<Task>? tasks, Iterable<TaskList>? lists}) =>
-      TaskStore(
-        tasks: tasks ?? this.tasks,
-        lists: lists ?? this.lists,
-        loaded: loaded,
-        warnDays: warnDays,
-      );
+  TaskStore copyWith({
+    List<Task>? tasks,
+    Iterable<TaskList>? lists,
+    Iterable<Tracker>? trackers,
+  }) => TaskStore(
+    tasks: tasks ?? this.tasks,
+    lists: lists ?? this.lists,
+    trackers: trackers ?? this.trackers,
+    loaded: loaded,
+    warnDays: warnDays,
+  );
+
+  Tracker? trackerById(String id) {
+    for (final tracker in trackers) {
+      if (tracker.id == id) return tracker;
+    }
+    return null;
+  }
 
   TaskList? listById(String id) {
     for (final list in lists) {
@@ -182,6 +198,52 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     });
   }
 
+  /// Adds [tracker], or saves changes to it.
+  void saveTracker(Tracker tracker) {
+    state = state.copyWith(
+      trackers: [
+        for (final t in state.trackers)
+          if (t.id != tracker.id) t,
+        tracker,
+      ],
+    );
+    _enqueue(() async {
+      await _workspace?.saveTracker(tracker);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  /// Applies [change] to the tracker with [id] as it is now, if it's still
+  /// here and [change] changes anything.
+  void editTracker(String id, Tracker Function(Tracker tracker) change) {
+    final tracker = state.trackerById(id);
+    if (tracker == null) return;
+    final changed = change(tracker);
+    if (changed != tracker) saveTracker(changed);
+  }
+
+  /// Logs the tracker with [id] at [at], or now, and returns the entry.
+  TrackerEntry logTracker(String id, {DateTime? at, String? note}) {
+    final time = at ?? _now;
+    editTracker(id, (t) => t.log(time, note: note));
+    final logged = Tracker(id: id, name: id).log(time, note: note);
+    return logged.entries.single;
+  }
+
+  /// Removes the tracker with [id] and its log.
+  void deleteTracker(String id) {
+    state = state.copyWith(
+      trackers: [
+        for (final t in state.trackers)
+          if (t.id != id) t,
+      ],
+    );
+    _enqueue(() async {
+      await _workspace?.deleteTracker(id);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
   /// Renames [from] to [to] on every task that has it, in any case, or
   /// removes it if [to] is null.
   void renameTag(String from, String? to) {
@@ -249,6 +311,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
         state = TaskStore(
           tasks: workspace.tasks.toList(),
           lists: workspace.lists,
+          trackers: workspace.trackers,
           warnDays: workspace.warnDays,
         );
       });

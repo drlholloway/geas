@@ -18,7 +18,8 @@ void main() {
 
   MapEntry<String, Task> remote(String title) => [
     for (final MapEntry(:key, :value) in app.github.files.entries)
-      if (key.endsWith('.md')) MapEntry(key, Task.parse(utf8.decode(value))),
+      if (key.endsWith('.md') && !isTrackerPath(key))
+        MapEntry(key, Task.parse(utf8.decode(value))),
   ].singleWhere((e) => e.value.title == title);
 
   /// This device and another both retitle "Reply to the luthier"; this

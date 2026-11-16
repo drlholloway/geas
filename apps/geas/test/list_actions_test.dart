@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geas/features/shell/sidebar.dart';
 import 'package:geas/state/sync.dart';
@@ -46,7 +46,8 @@ void main() {
 
   List<Task> remoteTasks() => [
     for (final MapEntry(:key, :value) in app.github.files.entries)
-      if (key.endsWith('.md')) Task.parse(utf8.decode(value)),
+      if (key.endsWith('.md') && !isTrackerPath(key))
+        Task.parse(utf8.decode(value)),
   ];
 
   testWidgets('adding a list shows it and syncs it', (tester) async {

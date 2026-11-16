@@ -39,7 +39,8 @@ Due parseDueInput(String text, {required DateTime now}) {
   if (words.isEmpty || words.length > 2) throw _invalid(text);
 
   final today = LocalDate.of(now.toLocal());
-  final time = words.length == 2 ? _parseTime(words[1]) : _parseTime(words[0]);
+  final time =
+      words.length == 2 ? parseClockTime(words[1]) : parseClockTime(words[0]);
   final LocalDate date;
   if (words.length == 1 && time != null) {
     date = today;
@@ -74,7 +75,9 @@ LocalDate? _parseDay(String word, LocalDate today) {
   }
 }
 
-(int, int)? _parseTime(String word) {
+/// The hour and minute of `17:00`, `5pm` or `5:30pm`, or null for anything
+/// else.
+(int, int)? parseClockTime(String word) {
   final m24 = _time24.firstMatch(word);
   if (m24 != null) {
     final hour = int.parse(m24[1]!), minute = int.parse(m24[2]!);

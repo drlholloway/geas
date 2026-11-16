@@ -1,6 +1,6 @@
 /// Pure-Dart core for Geas.
 ///
-/// Tasks and lists, their file format, queries, archiving, the local store,
+/// Tasks, lists and trackers, their file format, queries, archiving, the local store,
 /// merge and sync, and the GitHub client. Shared by the app and the CLI. No
 /// Flutter.
 library;
@@ -31,4 +31,6 @@ export 'src/sync/merge.dart';
 export 'src/sync/syncer.dart';
 export 'src/task.dart';
 export 'src/task_list.dart';
+export 'src/tracker.dart';
+export 'src/tracker_stats.dart';
 export 'src/ulid.dart';

@@ -32,13 +32,16 @@ class ConflictsNotifier extends AsyncNotifier<List<SyncConflict>> {
   Future<void> useSetAside(SyncConflict conflict) async {
     final store = ref.read(taskStoreProvider.notifier);
     final text = conflict.setAside;
+    // Trackers are Markdown too, but go back as whole files.
+    final isTask =
+        conflict.path.endsWith('.md') && !isTrackerPath(conflict.path);
     if (text == null) {
-      if (conflict.path.endsWith('.md')) {
+      if (isTask) {
         store.delete(conflict.key);
       } else {
         await store.restoreFile(conflict.path, null);
       }
-    } else if (conflict.path.endsWith('.md')) {
+    } else if (isTask) {
       store.restoreTask(Task.parse(text));
     } else {
       await store.restoreFile(conflict.path, text);

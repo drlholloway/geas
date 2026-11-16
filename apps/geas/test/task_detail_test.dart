@@ -44,7 +44,7 @@ void main() {
     await tester.pumpAndSettle();
     return [
       for (final MapEntry(:key, :value) in app.github.files.entries)
-        if (key.endsWith('.md')) Task.parse(utf8.decode(value)),
+        if (key.endsWith('.md') && !isTrackerPath(key)) Task.parse(utf8.decode(value)),
     ].singleWhere((t) => t.title == title);
   }
 

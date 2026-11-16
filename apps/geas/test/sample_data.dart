@@ -24,7 +24,29 @@ TaskStore sampleStore(DateTime now) {
     body: body,
   );
 
+  // Twice a day for three weeks with a few missed, and this morning's.
+  final morning = DateTime(now.year, now.month, now.day, 8, 5);
+  var metformin = Tracker(id: 'metformin', name: 'Metformin', order: 1);
+  for (var day = 20; day >= 0; day--) {
+    final at = morning.subtract(Duration(days: day));
+    if (day % 9 != 4) metformin = metformin.log(at);
+    if (day > 0 && day % 6 != 2) {
+      metformin = metformin.log(at.add(const Duration(hours: 12, minutes: 20)));
+    }
+  }
+  var sensor = Tracker(
+    id: 'cgm-sensor',
+    name: 'CGM sensor',
+    kind: TrackerKind.sensor,
+    every: const Duration(days: 10),
+    order: 2,
+  );
+  for (final day in [33, 24, 14, 4]) {
+    sensor = sensor.log(morning.subtract(Duration(days: day, hours: -1)));
+  }
+
   return TaskStore(
+    trackers: [metformin, sensor],
     lists: const [
       TaskList(id: 'pedals', name: 'Pedals', color: '#E07A2F', order: 1),
       TaskList(id: 'home', name: 'Home', color: '#3C8DBC', order: 2),

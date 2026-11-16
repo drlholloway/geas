@@ -15,7 +15,8 @@ anything cut from v1 to its **Later** section.
 Pub workspace, mirroring FretboardTrainer and Sightings (DC75Workbench) in
 the sibling directories.
 
-- `packages/geas_core/` — pure Dart, no Flutter: task and list models, the
+- `packages/geas_core/` — pure Dart, no Flutter: task, list and health
+  tracker models, the
   Markdown + YAML file format, three-way merge, the GitHub sync client and the
   local cache. Everything that matters lives here and is unit tested. Shared
   by the app and the CLI.

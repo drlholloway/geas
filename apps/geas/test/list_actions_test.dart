@@ -46,7 +46,7 @@ void main() {
 
   List<Task> remoteTasks() => [
     for (final MapEntry(:key, :value) in app.github.files.entries)
-      if (key.endsWith('.md')) Task.parse(utf8.decode(value)),
+      if (key.endsWith('.md') && !isTrackerPath(key)) Task.parse(utf8.decode(value)),
   ];
 
   testWidgets('adding a list shows it and syncs it', (tester) async {

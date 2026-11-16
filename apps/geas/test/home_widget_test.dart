@@ -19,7 +19,7 @@ void main() {
 
   Task remote(String title) => [
     for (final MapEntry(:key, :value) in app.github.files.entries)
-      if (key.endsWith('.md')) Task.parse(utf8.decode(value)),
+      if (key.endsWith('.md') && !isTrackerPath(key)) Task.parse(utf8.decode(value)),
   ].singleWhere((t) => t.title == title);
 
   /// Lets the app settle and redraw the widget.

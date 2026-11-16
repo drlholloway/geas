@@ -13,6 +13,8 @@ are plain Markdown files in a repo you own.
 
 - **Lists, tags, due dates with optional times, priorities, checklists and
   notes.** Inbox, Today and Next 7 days views.
+- **Health:** log each medication dose and CGM sensor change, and see how
+  often: doses a day, days of wear, and when the next is due.
 - **Eisenhower matrix:** Do, Schedule, Delegate and Drop, one per priority.
   Drag a task between quadrants to change its priority. Tasks due soon are
   bold amber; overdue ones are red.
@@ -53,6 +55,9 @@ geas matrix                       # Do, Schedule, Delegate, Drop
 geas order S13H --vendor Tayda --number TE-1234567
 geas track S13H 9400111899223397846185 --eta fri
 geas orders                       # by status, with tracking links
+geas health add "CGM sensor" --kind sensor --every 10d
+geas take metformin               # log a dose now; --at 8am for earlier
+geas health                       # last taken, doses a day, sensor wear
 geas done S13H                    # ids are short suffixes from ls
 geas edit S13H                    # the Markdown file in $EDITOR
 geas --help

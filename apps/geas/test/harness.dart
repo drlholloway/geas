@@ -94,7 +94,8 @@ class TestApp {
   /// Task titles in the remote repo.
   List<String> remoteTitles() => [
     for (final MapEntry(:key, :value) in github.files.entries)
-      if (key.endsWith('.md') && !isTrackerPath(key)) Task.parse(utf8.decode(value)).title,
+      if (key.endsWith('.md') && !isTrackerPath(key))
+        Task.parse(utf8.decode(value)).title,
   ];
 
   Future<void> pump(

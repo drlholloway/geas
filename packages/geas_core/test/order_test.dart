@@ -98,6 +98,10 @@ Notes.
       expect(Carrier.detect('9612345678901234567890'), Carrier.fedex);
       expect(Carrier.detect('1234567890'), Carrier.dhl);
       expect(Carrier.detect('JJD0001234567890'), Carrier.dhl);
+      expect(Carrier.detect('LA123456789CN'), Carrier.usps);
+      expect(Carrier.detect('yt2315921266046217'), Carrier.gofo);
+      expect(Carrier.detect('GFUS01029396906368'), Carrier.gofo);
+      expect(Carrier.detect('YT123'), Carrier.other);
       expect(Carrier.detect('ABC'), Carrier.other);
     });
 
@@ -109,7 +113,19 @@ Notes.
       expect(Carrier.fedex.trackingUrl('123456789012')!.host, 'www.fedex.com');
       expect(Carrier.dhl.trackingUrl('1234567890')!.queryParameters,
           containsPair('tracking-id', '1234567890'));
+      expect('${Carrier.gofo.trackingUrl('YT2315921266046217')}',
+          'https://www.gofo.com/us/track?searchID=YT2315921266046217');
       expect(Carrier.other.trackingUrl('x'), isNull);
+    });
+
+    test('a number saved as other is recognized once its carrier is', () {
+      final task = Task.parse('---\nid: a\ntitle: T\n'
+          'created: 2026-11-08T00:00:00Z\nupdated: 2026-11-08T00:00:00Z\n'
+          'order:\n  packages:\n'
+          '    - carrier: other\n      tracking: LA123456789CN\n'
+          '    - carrier: other\n      tracking: ABC\n---\n');
+      expect(task.order!.packages.map((p) => p.carrier),
+          [Carrier.usps, Carrier.other]);
     });
   });
 

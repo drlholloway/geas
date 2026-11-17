@@ -62,6 +62,9 @@ enum Carrier {
   ups('UPS'),
   fedex('FedEx'),
   dhl('DHL'),
+
+  /// GOFO Express, which delivers YunExpress (`YT…`) parcels in the US.
+  gofo('GOFO'),
   other('Other');
 
   const Carrier(this.label);
@@ -80,9 +83,17 @@ enum Carrier {
   static Carrier detect(String tracking) {
     final t = tracking.replaceAll(RegExp(r'\s'), '').toUpperCase();
     if (RegExp(r'^1Z[0-9A-Z]{16}$').hasMatch(t)) return ups;
+    // Two letters, nine digits and a country code is the international
+    // postal format (UPU S10). Mail from any country's post, such as
+    // `LA…CN`, is handed to USPS and tracks there.
     if (RegExp(r'^9[1-5]\d{18,20}$').hasMatch(t) ||
-        RegExp(r'^[A-Z]{2}\d{9}US$').hasMatch(t)) {
+        RegExp(r'^[A-Z]{2}\d{9}[A-Z]{2}$').hasMatch(t)) {
       return usps;
+    }
+    // YunExpress numbers and GOFO's own waybills.
+    if (RegExp(r'^YT\d{16}$').hasMatch(t) ||
+        RegExp(r'^(GFUS|CIUS)\d{11,15}$').hasMatch(t)) {
+      return gofo;
     }
     if (RegExp(r'^(JJD|JD)\d{10,}$').hasMatch(t) ||
         RegExp(r'^\d{10}$').hasMatch(t)) {
@@ -106,6 +117,7 @@ enum Carrier {
           '/us-en/home/tracking/tracking-express.html',
           {'submit': '1', 'tracking-id': t},
         ),
+      gofo => Uri.https('www.gofo.com', '/us/track', {'searchID': t}),
       other => null,
     };
   }
@@ -143,9 +155,11 @@ class Package {
     final carrier = _text(node, 'carrier', what);
     final eta = _text(node, 'eta', what);
     final status = _text(node, 'status', what);
+    // A number saved as `other` before its carrier was recognized is
+    // looked at again.
+    final named = carrier == null ? Carrier.other : Carrier.parse(carrier);
     return Package(
-      carrier:
-          carrier == null ? Carrier.detect(tracking) : Carrier.parse(carrier),
+      carrier: named == Carrier.other ? Carrier.detect(tracking) : named,
       tracking: tracking,
       eta: eta == null ? null : LocalDate.parse(eta),
       status: status == null ? null : PackageStatus.parse(status),

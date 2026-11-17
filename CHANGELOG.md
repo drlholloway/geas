@@ -17,6 +17,10 @@ GitHub Release notes.
   conflict.
 - **Reordering Health:** drag a card by its handle to put what you track
   in the order you want; `geas health move <name> <position>` in the CLI.
+- **More tracking numbers recognized:** international postal numbers
+  (two letters, nine digits and a country code, like `LA123456789CN`) open
+  on USPS, and YunExpress `YT…` numbers open on GOFO, which delivers them
+  in the US.
 - **CLI:** `geas health` shows the same numbers, `geas health add` and
   `rm` manage what's tracked, and `geas log <name>` (or `geas take`) logs a
   time, with `--at "yesterday 9pm"`, `--note` and `--undo`.

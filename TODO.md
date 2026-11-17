@@ -90,7 +90,8 @@ order:
   status: shipped              # ordered | shipped | out-for-delivery |
                                # delivered | problem | returned
   packages:
-    - carrier: usps            # usps | ups | fedex | dhl | other
+    - carrier: usps            # usps | ups | fedex | dhl | gofo |
+                               # other
       tracking: 9400111899223397846185
       eta: 2026-11-14
       status: in-transit       # optional, per package
@@ -311,7 +312,9 @@ Orders and packages:
 - [x] Core: `Order` and `Package` models parsed from and written to the
       `order` frontmatter map, round-tripping like the other fields
 - [x] Core: carrier detection from the tracking number's shape (USPS, UPS
-      `1Z…`, FedEx, DHL) and a tracking-page URL for each carrier
+      `1Z…`, FedEx, DHL) and a tracking-page URL for each carrier.
+      International postal numbers such as `LA…CN` go to USPS, and
+      YunExpress `YT…` numbers to GOFO, which delivers them (2026-11-17)
 - [x] Core: queries for open orders grouped by status, and arriving today
       or this week by `eta`
 - [x] App: an Orders view in the sidebar grouped into Ordered, Shipped, Out

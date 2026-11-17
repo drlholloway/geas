@@ -5,6 +5,14 @@ GitHub Release notes.
 
 ## Unreleased
 
+## 0.3.0 — 2026-11-17
+
+A Health view for logging medication doses and CGM sensor changes, and
+more tracking numbers recognized.
+
+Update every device before adding a `YT…` package: 0.2.0 can't read a
+task with a GOFO package and reports it as unreadable.
+
 ### Added
 - **Health:** a new view for logging each time you take a medication or
   replace a CGM sensor. Each one shows when it was last logged and how

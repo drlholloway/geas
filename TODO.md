@@ -357,6 +357,8 @@ Orders and packages:
       using Geas
 - [x] Tag `v0.1.0`
 - [x] Tag `v0.2.0`: the Android matrix widget, About, the new icon
+- [x] Tag `v0.3.0`: Health tracking, international postal and GOFO
+      tracking numbers
 
 ## Phase 7: Health tracking (2026-11-15)
 

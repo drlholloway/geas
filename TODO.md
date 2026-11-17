@@ -384,8 +384,9 @@ how often.
 - [x] Reordering: drag a card by its handle in the Health view, or
       `geas health move <name> <position>`; `moveTracker` in core
       renumbers `order`
-- [ ] Wiki page and screenshots (`just screenshots` draws `health`,
-      `health-tracker` and `phone-health`)
+- [x] Wiki: a Health page, its commands and file format, and redrawn
+      screenshots (`just screenshots` draws `health`, `health-tracker`
+      and `phone-health`)
 
 ## Later
 

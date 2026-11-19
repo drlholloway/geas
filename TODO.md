@@ -431,13 +431,23 @@ how often.
       on a timer at that interval, which is what macOS and Linux get:
       nothing there syncs while Geas is closed
 
+- [x] Reminders as local notifications (`flutter_local_notifications`),
+      off until turned on in Settings, which asks the system's permission;
+      the switch is per device (`config.json`). `upcomingReminders` in
+      core picks the next 48: each open task at its due time, or at 9:00
+      on its due date, and each tracker with an `every` when its next is
+      due. The app sets them again whenever tasks or trackers change, and
+      so do background sync and the widget's checkbox. Android and macOS
+      hold the schedule, so they arrive with Geas closed; Android's are
+      inexact (within a few minutes) to avoid the exact-alarm permission.
+      Linux has no scheduler, so there they show only while Geas is open
+
 ## Later
 
-- Health: reminders when a dose or sensor is due, doses with amounts, and
-  the Android widget
+- Health: doses with amounts, and the Android widget
 
-- Reminders as local notifications on each device. Dismissals sync, so a
-  device that hasn't synced yet may still fire one.
+- Reminders: syncing dismissals between devices, a choice of time for
+  tasks with no time, and Linux reminders while Geas is closed
 - Syncing on Linux and macOS while Geas is closed (a systemd timer or
   launch agent). Today they sync on a timer only while it's open
 - Calendar view

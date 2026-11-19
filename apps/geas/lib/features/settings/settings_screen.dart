@@ -139,6 +139,36 @@ class SettingsScreen extends ConsumerWidget {
                     .save(config.copyWith(syncMinutes: minutes)),
               ),
             ),
+          if (env.reminders != null) ...[
+            heading('Reminders'),
+            SwitchListTile(
+              secondary: const Icon(Icons.notifications_outlined),
+              title: const Text('Remind me'),
+              subtitle: const Text(
+                'A notification when a task is due (at 9:00 if it has no '
+                'time), and when a medication or sensor is due again. Set '
+                'for this device only.',
+              ),
+              value: config.reminders,
+              onChanged: (on) async {
+                final messenger = ScaffoldMessenger.of(context);
+                if (on && !await env.reminders!.requestPermission()) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Notifications are turned off for Geas. Allow them '
+                        'in the system settings, then try again.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+                await ref
+                    .read(configProvider.notifier)
+                    .save(config.copyWith(reminders: on));
+              },
+            ),
+          ],
           heading('Token'),
           ListTile(
             leading: const Icon(Icons.key_outlined),

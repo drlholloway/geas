@@ -18,6 +18,8 @@ are plain Markdown files in a repo you own.
 - **Eisenhower matrix:** Do, Schedule, Delegate and Drop, one per priority.
   Drag a task between quadrants to change its priority. Tasks due soon are
   bold amber; overdue ones are red.
+- **Reminders:** a notification when a task is due, or a medication or
+  sensor is due again.
 - **A home-screen widget on Android** with the four quadrants: tick tasks
   off without opening the app. Android syncs in the background, so the
   widget keeps up with your other devices.

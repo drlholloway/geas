@@ -7,6 +7,7 @@ import 'package:geas_core/geas_core.dart';
 import 'package:home_widget/home_widget.dart';
 
 import 'environment.dart';
+import 'reminders.dart';
 import 'sync_lock.dart';
 
 /// The Android home-screen widget that shows the Eisenhower matrix. The app
@@ -202,6 +203,16 @@ Future<void> completeFromWidget(
   if (workspace.task(id) == null && !await sync()) return;
   final finished = await finish();
   await redraw();
+  // A finished task's reminder goes; a repeating one's next is set.
+  if (finished) {
+    await scheduleReminders(
+      env.reminders,
+      on: config.reminders,
+      tasks: workspace.tasks,
+      trackers: workspace.trackers,
+      now: clock(),
+    );
+  }
   // Offline, the change goes out with the next sync.
   if (finished && await sync()) await redraw();
 }

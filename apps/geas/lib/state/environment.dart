@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'background_sync.dart';
 import 'home_widget.dart';
+import 'reminders.dart';
 
 const _keep = Object();
 
@@ -31,6 +32,7 @@ class AppConfig {
     this.tokenExpires,
     this.backgroundSync = true,
     this.syncMinutes = defaultSyncMinutes,
+    this.reminders = false,
   });
 
   factory AppConfig.fromJson(Map<String, Object?> json) => AppConfig(
@@ -45,6 +47,7 @@ class AppConfig {
       final int minutes when minutes >= minSyncMinutes => minutes,
       _ => defaultSyncMinutes,
     },
+    reminders: json['reminders'] as bool? ?? false,
   );
 
   final RepoRef repo;
@@ -62,12 +65,17 @@ class AppConfig {
   /// Minutes between those syncs; Android won't go below [minSyncMinutes].
   final int syncMinutes;
 
+  /// Whether this device shows a notification when a task comes due, or a
+  /// medication or sensor is due again.
+  final bool reminders;
+
   /// A copy with the given fields replaced. Pass null for [tokenExpires] to
   /// clear it.
   AppConfig copyWith({
     Object? tokenExpires = _keep,
     bool? backgroundSync,
     int? syncMinutes,
+    bool? reminders,
   }) => AppConfig(
     repo: repo,
     device: device,
@@ -76,6 +84,7 @@ class AppConfig {
         : tokenExpires as DateTime?,
     backgroundSync: backgroundSync ?? this.backgroundSync,
     syncMinutes: syncMinutes ?? this.syncMinutes,
+    reminders: reminders ?? this.reminders,
   );
 
   Map<String, Object?> toJson() => {
@@ -85,6 +94,7 @@ class AppConfig {
       'token_expires': tokenExpires!.toUtc().toIso8601String(),
     if (!backgroundSync) 'background_sync': false,
     if (syncMinutes != defaultSyncMinutes) 'sync_minutes': syncMinutes,
+    if (reminders) 'reminders': true,
   };
 }
 
@@ -175,6 +185,7 @@ class AppEnvironment {
     required this.hostname,
     this.homeWidget,
     this.backgroundScheduler,
+    this.reminders,
     this.version = '',
   });
 
@@ -198,6 +209,7 @@ class AppEnvironment {
       backgroundScheduler: Platform.isAndroid
           ? const AndroidBackgroundScheduler()
           : null,
+      reminders: LocalNotifications(),
       version: (await PackageInfo.fromPlatform()).version,
     );
   }
@@ -222,6 +234,9 @@ class AppEnvironment {
   /// Schedules syncs while the app is closed, on Android. Elsewhere the
   /// app only syncs while it's open.
   final BackgroundScheduler? backgroundScheduler;
+
+  /// Shows reminders as notifications; null where that can't be done.
+  final ReminderHost? reminders;
 
   /// This build's version, as in pubspec.yaml.
   final String version;

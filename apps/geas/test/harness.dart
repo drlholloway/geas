@@ -9,6 +9,7 @@ import 'package:geas/main.dart';
 import 'package:geas/state/background_sync.dart';
 import 'package:geas/state/environment.dart';
 import 'package:geas/state/home_widget.dart';
+import 'package:geas/state/reminders.dart';
 import 'package:geas/state/store.dart';
 import 'package:geas_core/geas_core.dart';
 import 'package:geas_core/testing.dart';
@@ -52,6 +53,9 @@ class TestApp {
   /// The Android home-screen widget; none unless a test sets one.
   FakeHomeWidget? homeWidget;
 
+  /// Where reminders go; none unless a test sets one.
+  FakeReminders? reminders;
+
   /// Android's background scheduler; none unless a test sets one.
   FakeBackgroundScheduler? backgroundScheduler;
 
@@ -71,6 +75,7 @@ class TestApp {
     hostname: hostname,
     homeWidget: homeWidget,
     backgroundScheduler: backgroundScheduler,
+    reminders: reminders,
     version: version,
   );
 
@@ -121,6 +126,29 @@ class TestApp {
     );
     await tester.pumpAndSettle();
   }
+}
+
+/// Reminders that keep what was scheduled.
+class FakeReminders implements ReminderHost {
+  /// Whether the system lets Geas show notifications.
+  var allowed = true;
+  var asked = 0;
+
+  /// Every schedule set, oldest first.
+  final schedules = <List<Reminder>>[];
+
+  /// Titles in the latest schedule.
+  List<String> get titles => [for (final r in schedules.last) r.title];
+
+  @override
+  Future<bool> requestPermission() async {
+    asked++;
+    return allowed;
+  }
+
+  @override
+  Future<void> schedule(List<Reminder> reminders) async =>
+      schedules.add(reminders);
 }
 
 /// A background scheduler that keeps what it was asked for.

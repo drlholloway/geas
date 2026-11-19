@@ -21,6 +21,10 @@ GitHub Release notes.
   `is:all`. Save a search as a filter and it gets its own entry in the
   sidebar, synced to every device. In the CLI, `geas find`, with
   `--save <name>` and `-f <filter>`, and `geas filters`.
+- **Reminders:** turn on **Remind me** in Settings and Geas notifies you
+  when a task is due (at 9:00 if it has no time) and when a medication or
+  sensor is due again. It's set per device. On Android and macOS they
+  arrive with Geas closed; on Linux only while it's open.
 - **Background sync on Android:** Geas syncs about every half hour while
   it's closed, whenever there's a network, so the home-screen widget shows
   changes from your other devices without opening the app. Android may

@@ -8,6 +8,7 @@ import 'package:workmanager/workmanager.dart';
 
 import 'environment.dart';
 import 'home_widget.dart';
+import 'reminders.dart';
 import 'sync_lock.dart';
 
 /// The name Android's WorkManager knows the periodic sync by.
@@ -110,6 +111,14 @@ Future<BackgroundSync> backgroundSync(
     workspace.tasks,
     now: clock(),
     warnDays: workspace.warnDays,
+  );
+  // What other devices changed moves this one's reminders too.
+  await scheduleReminders(
+    env.reminders,
+    on: config.reminders,
+    tasks: workspace.tasks,
+    trackers: workspace.trackers,
+    now: clock(),
   );
   return BackgroundSync.synced;
 }

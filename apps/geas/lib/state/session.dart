@@ -36,6 +36,7 @@ class ConfigNotifier extends AsyncNotifier<AppConfig?> {
         tokenExpires: access.tokenExpires,
         backgroundSync: before?.backgroundSync ?? true,
         syncMinutes: before?.syncMinutes ?? defaultSyncMinutes,
+        reminders: before?.reminders ?? false,
       ),
     );
   }

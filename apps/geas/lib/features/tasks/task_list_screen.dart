@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geas_core/geas_core.dart';
 
 import '../../state/store.dart';
 import '../lists/list_actions.dart';
@@ -123,16 +124,28 @@ class _QuickAddState extends ConsumerState<_QuickAdd> {
   }
 
   void _submit(String text) {
-    final title = text.trim();
-    if (title.isEmpty) return;
+    if (text.trim().isEmpty) return;
     final view = widget.view;
+    final now = ref.read(clockProvider)();
+    // `#tag`, `^list`, `!high` and a date at the end, over what the view
+    // gives a new task.
+    final typed = parseQuickAdd(
+      text,
+      now: now,
+      lists: ref.read(taskStoreProvider).lists,
+    );
     ref
         .read(taskStoreProvider.notifier)
         .add(
-          title,
-          list: view.newTaskList,
-          tags: view.newTaskTags,
-          due: view.newTaskDue(ref.read(clockProvider)()),
+          typed.title,
+          list: typed.list ?? view.newTaskList,
+          tags: [
+            ...view.newTaskTags,
+            for (final tag in typed.tags)
+              if (!view.newTaskTags.contains(tag)) tag,
+          ],
+          due: typed.due ?? view.newTaskDue(now),
+          priority: typed.priority ?? Priority.none,
         );
     _controller.clear();
     _focus.requestFocus();
@@ -145,6 +158,7 @@ class _QuickAddState extends ConsumerState<_QuickAdd> {
     textInputAction: TextInputAction.done,
     decoration: InputDecoration(
       hintText: 'Add a task to ${widget.title}',
+      helperText: '#tag  ^list  !high  and a date at the end, like fri 5pm',
       prefixIcon: const Icon(Icons.add),
       filled: true,
       border: OutlineInputBorder(

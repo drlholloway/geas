@@ -92,6 +92,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     String list = inboxId,
     List<String> tags = const [],
     Due? due,
+    Priority priority = Priority.none,
     Order? order,
   }) {
     final task = Task.create(
@@ -100,6 +101,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
       list: list,
       tags: tags,
       due: due,
+      priority: priority,
     ).copyWith(order: order);
     _save(task);
     return task;

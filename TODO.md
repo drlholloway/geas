@@ -408,6 +408,13 @@ how often.
       date. The finished one stops repeating. A Repeat chip in the task
       sheet, the repeat on each row, and `geas add -r`
 
+- [x] Quick-add syntax, shared by the app and CLI (`parseQuickAdd` in
+      core): `#tag`, `^list`, `!high` / `!med` / `!low` (or `!!!`, `!!`,
+      `!`), and a date at the very end (`tomorrow`, `fri 5pm`). Anything
+      it doesn't recognize stays in the title. The app's add field uses it
+      over the view's defaults; `geas add` does unless given `--plain`,
+      and its options win
+
 ## Later
 
 - Health: reminders when a dose or sensor is due, doses with amounts, and
@@ -417,8 +424,6 @@ how often.
   device that hasn't synced yet may still fire one.
 - Background sync: a switch for it and its interval in Settings, and the
   same on Linux and macOS
-- Quick-add syntax shared by app and CLI (`#tag`, `^list`, `!high`,
-  `tomorrow`)
 - Calendar view
 - Sign in through a registered Geas GitHub App (device flow): no token to
   copy, but an app to register and tokens to refresh every 8 hours

@@ -19,6 +19,7 @@ export 'src/matrix.dart';
 export 'src/order.dart';
 export 'src/priority.dart';
 export 'src/queries.dart';
+export 'src/quick_add.dart';
 export 'src/repeat.dart';
 export 'src/repo_config.dart';
 export 'src/short_id.dart';

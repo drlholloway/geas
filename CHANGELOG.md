@@ -11,6 +11,10 @@ GitHub Release notes.
   adds the next one, due on the next date after today, with the same
   list, tags, priority and notes and its checklist unticked. In the CLI,
   `geas add -r weekly`.
+- **Quick add:** type `#tag`, `^list`, `!high` (or `!med`, `!low`) and a
+  date at the end, like `Order diodes #tayda ^pedals !high fri 5pm`, in
+  the app's add field or `geas add`. `geas add --plain` takes the title
+  as typed.
 - **Background sync on Android:** Geas syncs about every half hour while
   it's closed, whenever there's a network, so the home-screen widget shows
   changes from your other devices without opening the app. Android may

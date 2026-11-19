@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geas/features/shell/sidebar.dart';
 import 'package:geas_core/geas_core.dart';
 
 import 'harness.dart';
@@ -43,6 +44,28 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect(find.text('Buy flux'), findsOneWidget);
+  });
+
+  testWidgets('quick add reads tags, a list, a priority and a date', (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.enterText(
+      find.byType(TextField),
+      'Buy flux #solder ^pedals !high tomorrow',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    // Filed in Pedals, so not in the Inbox.
+    expect(find.text('Buy flux'), findsNothing);
+    await tester.tap(
+      find.descendant(of: find.byType(Sidebar), matching: find.text('Pedals')),
+    );
+    await tester.pumpAndSettle();
+    final row = find.widgetWithText(ListTile, 'Buy flux');
+    expect(row, findsOneWidget);
+    expect(find.descendant(of: row, matching: find.text('Tomorrow')), findsOne);
+    expect(find.descendant(of: row, matching: find.text('#solder')), findsOne);
   });
 
   testWidgets('checking a task moves it to Completed', (tester) async {

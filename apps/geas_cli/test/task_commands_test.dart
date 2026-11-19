@@ -285,4 +285,31 @@ void main() {
 
     expect(await geas(['add', 'x', '-r', 'sometimes']), 64);
   });
+
+  test('add reads tags, a list, a priority and a date from the title',
+      () async {
+    expect(await geas(['lists', 'add', 'Pedals']), 0);
+    expect(await geas(['add', 'Order 1N914s #tayda ^pedals !high fri 5pm']), 0,
+        reason: '${geas.err}');
+    expect('${geas.out}', contains('Order 1N914s, due Fri 17:00.'));
+    var task = geas.remoteTask('Order 1N914s');
+    expect(task.tags, ['tayda']);
+    expect(task.list, 'pedals');
+    expect(task.priority, Priority.high);
+
+    // Options win, and tags add up.
+    expect(
+        await geas(
+            ['add', 'Call mom #family !low tomorrow', '-p', 'm', '-t', 'x']),
+        0);
+    task = geas.remoteTask('Call mom');
+    expect(task.priority, Priority.medium);
+    expect(task.tags, ['x', 'family']);
+    expect(task.due, const Due.date(LocalDate(2026, 11, 10)));
+
+    expect(await geas(['add', '--plain', 'Fix issue #12 tomorrow']), 0);
+    task = geas.remoteTask('Fix issue #12 tomorrow');
+    expect(task.tags, isEmpty);
+    expect(task.due, isNull);
+  });
 }

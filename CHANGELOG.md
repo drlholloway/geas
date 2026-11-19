@@ -11,6 +11,11 @@ GitHub Release notes.
   changes from your other devices without opening the app. Android may
   put a run off to save battery.
 
+### Fixed
+- **Two syncs at once on Android:** ticking a task on the home-screen
+  widget while another sync was running could have both work on the same
+  files. Now one waits for the other.
+
 ## 0.3.0 — 2026-11-17
 
 A Health view for logging medication doses and CGM sensor changes, and

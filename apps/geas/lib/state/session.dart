@@ -27,8 +27,16 @@ class ConfigNotifier extends AsyncNotifier<AppConfig?> {
     final access = await checkTokenAccess(client);
     await initDataRepo(client);
     await env.tokens.write(repo, token);
+    // A new token for the same repo keeps this device's settings.
+    final before = state.value;
     await save(
-      AppConfig(repo: repo, device: device, tokenExpires: access.tokenExpires),
+      AppConfig(
+        repo: repo,
+        device: device,
+        tokenExpires: access.tokenExpires,
+        backgroundSync: before?.backgroundSync ?? true,
+        syncMinutes: before?.syncMinutes ?? defaultSyncMinutes,
+      ),
     );
   }
 

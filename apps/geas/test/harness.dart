@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geas/main.dart';
+import 'package:geas/state/background_sync.dart';
 import 'package:geas/state/environment.dart';
 import 'package:geas/state/home_widget.dart';
 import 'package:geas/state/store.dart';
@@ -51,6 +52,9 @@ class TestApp {
   /// The Android home-screen widget; none unless a test sets one.
   FakeHomeWidget? homeWidget;
 
+  /// Android's background scheduler; none unless a test sets one.
+  FakeBackgroundScheduler? backgroundScheduler;
+
   AppEnvironment get environment => AppEnvironment(
     config: config,
     tokens: tokens,
@@ -66,6 +70,7 @@ class TestApp {
     },
     hostname: hostname,
     homeWidget: homeWidget,
+    backgroundScheduler: backgroundScheduler,
     version: version,
   );
 
@@ -116,6 +121,16 @@ class TestApp {
     );
     await tester.pumpAndSettle();
   }
+}
+
+/// A background scheduler that keeps what it was asked for.
+class FakeBackgroundScheduler implements BackgroundScheduler {
+  /// Every setting applied, oldest first: whether it's on, and how often.
+  final applied = <(bool, Duration)>[];
+
+  @override
+  Future<void> apply({required bool on, required Duration every}) async =>
+      applied.add((on, every));
 }
 
 /// A GitHub that never answers.

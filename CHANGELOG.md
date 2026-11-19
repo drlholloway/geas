@@ -25,6 +25,10 @@ GitHub Release notes.
   it's closed, whenever there's a network, so the home-screen widget shows
   changes from your other devices without opening the app. Android may
   put a run off to save battery.
+- **Syncing on its own, everywhere:** while Geas is open it now syncs on
+  a timer on every platform, not only on launch, on return and after
+  edits. Settings has a switch for it and how often, from 15 minutes to
+  4 hours; on Android the same setting drives the background sync.
 
 ### Fixed
 - **Two syncs at once on Android:** ticking a task on the home-screen

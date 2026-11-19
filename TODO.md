@@ -424,6 +424,13 @@ how often.
       entry with its count. `geas find` (`--save`, `-f`) and
       `geas filters`
 
+- [x] Background sync settings: a per-device switch and interval
+      (15 minutes to 4 hours) in Settings, kept in the device's
+      `config.json`. Android reschedules or cancels its WorkManager job
+      (`BackgroundScheduler`). On every platform the open app also syncs
+      on a timer at that interval, which is what macOS and Linux get:
+      nothing there syncs while Geas is closed
+
 ## Later
 
 - Health: reminders when a dose or sensor is due, doses with amounts, and
@@ -431,8 +438,8 @@ how often.
 
 - Reminders as local notifications on each device. Dismissals sync, so a
   device that hasn't synced yet may still fire one.
-- Background sync: a switch for it and its interval in Settings, and the
-  same on Linux and macOS
+- Syncing on Linux and macOS while Geas is closed (a systemd timer or
+  launch agent). Today they sync on a timer only while it's open
 - Calendar view
 - Sign in through a registered Geas GitHub App (device flow): no token to
   copy, but an app to register and tokens to refresh every 8 hours

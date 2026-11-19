@@ -6,7 +6,7 @@
 //
 // Not shipped. The home-screen widget's background work uses the real
 // environment, so ticking a task there with the app closed finishes it in
-// the local copy but can't sync it.
+// the local copy but can't sync it. Background sync isn't scheduled.
 import 'dart:convert';
 import 'dart:io';
 

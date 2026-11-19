@@ -275,6 +275,11 @@ end to end.
 - [x] Sync on launch, on resume, 5 seconds after edits, and on demand;
       the last sync status, conflicts and an expiring token show at the
       foot of the sidebar
+- [x] Background sync on Android (2026-11-18): WorkManager, through the
+      `workmanager` plugin, runs a sync about every 30 minutes while
+      there's a network, with the app closed, and redraws the home-screen
+      widget. A running app is asked to sync itself instead, so two syncs
+      never work on the same files. Scheduled on every launch
 - [x] macOS `com.apple.security.network.client` entitlement in both Debug
       and Release; Android `INTERNET` permission in the main manifest
 - [x] Phone layout on Android, sidebar layout at desktop widths (drawer
@@ -396,8 +401,8 @@ how often.
 - Reminders as local notifications on each device. Dismissals sync, so a
   device that hasn't synced yet may still fire one.
 - Recurring tasks (RRULE)
-- Background sync on Android (WorkManager). Until then the home-screen
-  widget shows changes from other devices once the app next syncs
+- Background sync: a switch for it and its interval in Settings, and the
+  same on Linux and macOS
 - Quick-add syntax shared by app and CLI (`#tag`, `^list`, `!high`,
   `tomorrow`)
 - Calendar view

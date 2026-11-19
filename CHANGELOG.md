@@ -5,6 +5,12 @@ GitHub Release notes.
 
 ## Unreleased
 
+### Added
+- **Background sync on Android:** Geas syncs about every half hour while
+  it's closed, whenever there's a network, so the home-screen widget shows
+  changes from your other devices without opening the app. Android may
+  put a run off to save battery.
+
 ## 0.3.0 — 2026-11-17
 
 A Health view for logging medication doses and CGM sensor changes, and

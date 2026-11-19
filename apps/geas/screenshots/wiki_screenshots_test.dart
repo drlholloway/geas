@@ -153,6 +153,41 @@ void main() {
     await shot(tester, 'phone-health');
   });
 
+  shotTest('search', (tester) async {
+    await app.seed();
+    await pump(tester, app);
+    await go(tester, 'Search');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Search tasks'),
+      '#errands',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Save as a filter'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Errands');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    await go(tester, 'Search');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Search tasks'),
+      'order ^pedals is:all',
+    );
+    await tester.pumpAndSettle();
+    await shot(tester, 'search');
+    await go(tester, 'Errands');
+    await shot(tester, 'filter');
+  });
+
+  shotTest('repeat', (tester) async {
+    await app.seed();
+    await pump(tester, app);
+    await tester.tap(find.text('Reply to the luthier'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Repeat'));
+    await tester.pumpAndSettle();
+    await shot(tester, 'repeat-menu');
+  });
+
   shotTest('conflicts', (tester) async {
     await app.seed();
     await pump(tester, app);

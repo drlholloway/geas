@@ -2,7 +2,7 @@ name: geas
 description: "Geas, a personal task manager synced through GitHub."
 publish_to: 'none'
 resolution: workspace
-version: 0.3.0+3
+version: 0.4.0+4
 
 environment:
   sdk: ^3.13.2

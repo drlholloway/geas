@@ -71,6 +71,15 @@ void main() {
       expect(without.withoutEntry(tracker.entries[1]), without);
     });
 
+    test('a log just made can be taken back, an older one can\'t', () {
+      final tracker = _logged(met, [_at(14, 8), _at(15, 8)]);
+      final soon = tracker.withoutRecent(_at(15, 8, 2));
+      expect(soon.entries.single.at.toLocal(), _at(14, 8));
+      expect(tracker.withoutRecent(_at(15, 8, 10)), tracker);
+      expect(tracker.withoutRecent(_at(15, 7)), tracker);
+      expect(met.withoutRecent(_at(15, 8)), met);
+    });
+
     test('a rewrite keeps comments, unknown keys and an unknown kind', () {
       const text = '---\n# my meds\nid: met\nname: Metformin\n'
           'kind: supplement\ndose: 500mg\n---\n';

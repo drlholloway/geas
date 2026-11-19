@@ -324,12 +324,20 @@ class DoneCommand extends GeasCommand {
             undo ? '$label is already open.' : '$label is already done.');
         continue;
       }
-      final saved = undo ? [task.reopen(now)] : completeTask(task, now);
+      final reopened =
+          undo ? reopenTask(task, session.workspace.tasks, now) : null;
+      final saved =
+          reopened == null ? completeTask(task, now) : [reopened.task];
       for (final t in saved) {
         await session.workspace.saveTask(t, now: now);
       }
       out.writeln('${undo ? 'Reopened' : 'Done:'} $label');
-      if (saved.length > 1) {
+      if (reopened?.replaced case final next?) {
+        await session.workspace.deleteTask(next.id);
+        out.writeln('  Removed the next one, which was due '
+            '${dueLabel(next.due!, now)}.');
+      }
+      if (!undo && saved.length > 1) {
         out.writeln('  Next one is due ${dueLabel(saved.last.due!, now)}.');
       }
       changed = true;

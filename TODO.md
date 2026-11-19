@@ -458,6 +458,14 @@ how often.
       that logs now: handed to the app if it's running, else logged and
       synced in a background isolate (`logFromWidget`)
 
+- [x] Undo on the Health widget: for two minutes after a log made there,
+      its button reads Undo and takes that log back (`geas://unlog/<id>`,
+      `Tracker.withoutRecent`). An Undo still showing after that only
+      redraws
+- [x] Reopening a finished repeating task (`reopenTask`) deletes the next
+      one it made, if that's still open under the same title, and gives the
+      repeat back
+
 ## Later
 
 - Reminders: syncing dismissals between devices, a choice of time for

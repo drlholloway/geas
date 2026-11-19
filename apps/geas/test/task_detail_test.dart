@@ -81,6 +81,42 @@ void main() {
     expect(both.singleWhere((t) => t.isCompleted).repeat, isNull);
   });
 
+  testWidgets('reopening a finished repeating task removes the next one', (
+    tester,
+  ) async {
+    await open(tester, 'Reply to the luthier');
+    await choose(tester, 'Repeat', 'Every week');
+    await close(tester);
+    Finder box(String title) => find.descendant(
+      of: find.widgetWithText(ListTile, title),
+      matching: find.byType(Checkbox),
+    );
+    await tester.tap(box('Reply to the luthier'));
+    await tester.pumpAndSettle();
+    await tester.pump(syncDelay);
+    await tester.pumpAndSettle();
+
+    // Untick the finished one, under Completed.
+    await tester.tap(find.textContaining('Completed ('));
+    await tester.pumpAndSettle();
+    await tester.tap(box('Reply to the luthier').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Reply to the luthier'), findsOneWidget);
+    expect(find.text('Every week'), findsOneWidget);
+
+    await tester.pump(syncDelay);
+    await tester.pumpAndSettle();
+    final left = [
+      for (final MapEntry(:key, :value) in app.github.files.entries)
+        if (key.endsWith('.md') && !isTrackerPath(key))
+          Task.parse(utf8.decode(value)),
+    ].where((t) => t.title == 'Reply to the luthier').toList();
+    expect(left, hasLength(1));
+    expect(left.single.isCompleted, isFalse);
+    expect(left.single.repeat, const Repeat(1, RepeatUnit.week));
+    expect(left.single.due, isNull);
+  });
+
   testWidgets('a repeat can be typed, and removed', (tester) async {
     await open(tester, 'Reply to the luthier');
     await choose(tester, 'Repeat', 'Other…');

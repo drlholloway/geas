@@ -33,6 +33,9 @@ GitHub Release notes.
 - **A Health widget on Android:** your medications and sensors on the
   home screen, with when each was last logged and is next due, and a
   button to log one without opening the app.
+- **Undo:** on the Health widget, the button reads Undo for two minutes
+  after you log from it. And reopening a finished repeating task removes
+  the next one it made.
 - **Background sync on Android:** Geas syncs about every half hour while
   it's closed, whenever there's a network, so the home-screen widget shows
   changes from your other devices without opening the app. Android may

@@ -123,8 +123,13 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
 
   /// Finishes or reopens [task]. Finishing a repeating task also adds the
   /// next one.
-  void setDone(Task task, {required bool done}) =>
-      _saveAll(done ? completeTask(task, _now) : [task.reopen(_now)]);
+  /// Reopening one whose next is still open takes that next one away again.
+  void setDone(Task task, {required bool done}) {
+    if (done) return _saveAll(completeTask(task, _now));
+    final reopened = reopenTask(task, state.tasks, _now);
+    if (reopened.replaced case final next?) delete(next.id);
+    _save(reopened.task);
+  }
 
   void setChecklistItem(Task task, int line, {required bool done}) =>
       _save(task.setChecklistItem(line, done: done, now: _now));
@@ -307,6 +312,16 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
       unit: tracker?.unit,
       dose: tracker?.dose,
     ).log(time, amount: amount, note: note).entries.single;
+  }
+
+  /// Takes back the tracker's latest log, if it was made in the last few
+  /// minutes. True if it did.
+  bool undoRecentLog(String id) {
+    final tracker = state.trackerById(id);
+    final undone = tracker?.withoutRecent(_now);
+    if (tracker == null || undone == tracker) return false;
+    saveTracker(undone!);
+    return true;
   }
 
   /// Removes the tracker with [id] and its log.

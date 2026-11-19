@@ -143,4 +143,49 @@ void main() {
       expect(completeTask(done.reopen(now), now), hasLength(1));
     });
   });
+
+  group('reopenTask', () {
+    Task weekly() => Task.create(
+          title: 'Water the plants',
+          now: now.subtract(const Duration(days: 30)),
+          due: const Due.date(today),
+        ).copyWith(repeat: Repeat.parse('weekly'));
+    final later = now.add(const Duration(minutes: 5));
+
+    test('takes back the next one and the repeat', () {
+      final [done, next] = completeTask(weekly(), now);
+      final result = reopenTask(done, [done, next], later);
+      expect(result.replaced, next);
+      expect(result.task.id, done.id);
+      expect(result.task.isCompleted, isFalse);
+      expect(result.task.repeat, Repeat.parse('weekly'));
+      expect(result.task.due, const Due.date(today));
+      // Finishing it again makes one next task, not two.
+      expect(completeTask(result.task, later), hasLength(2));
+    });
+
+    test('leaves a next one that was finished, renamed or is gone', () {
+      final [done, next] = completeTask(weekly(), now);
+      for (final others in [
+        [done, next.complete(later)],
+        [done, next.copyWith(title: 'Water the ferns')],
+        [done],
+      ]) {
+        final result = reopenTask(done, others, later);
+        expect(result.replaced, isNull);
+        expect(result.task.isCompleted, isFalse);
+        expect(result.task.repeat, isNull);
+      }
+    });
+
+    test('a task that never repeated just reopens', () {
+      final plain = Task.create(title: 'Once', now: now).complete(now);
+      final other = Task.create(title: 'Once', now: now)
+          .copyWith(repeat: Repeat.parse('daily'));
+      // Another repeating task of the same name, made at the same moment
+      // by hand, is the one case this can't tell apart.
+      expect(reopenTask(plain, [plain], later).replaced, isNull);
+      expect(reopenTask(plain, [plain, other], later).replaced, other);
+    });
+  });
 }

@@ -234,6 +234,54 @@ void main() {
       );
     });
 
+    testWidgets('Undo takes a log just made back, through the running app', (
+      tester,
+    ) async {
+      await app.pump(tester);
+      await settle(tester);
+      final before = widget().trackers['metformin']!['last'];
+      await tester.runAsync(() => handToApp('metformin', log: true));
+      await settle(tester);
+      expect(widget().trackers['metformin']!['last'], isNot(before));
+      expect(
+        await tester.runAsync(() => handToApp('metformin', unlog: true)),
+        isTrue,
+      );
+      await settle(tester);
+      expect(widget().trackers['metformin']!['last'], before);
+      // Nothing recent left to undo: a second one changes nothing.
+      await tester.runAsync(() => handToApp('metformin', unlog: true));
+      await settle(tester);
+      expect(widget().trackers['metformin']!['last'], before);
+    });
+
+    test(
+      'with no app running, the background takes a recent log back',
+      () async {
+        await syncDevice();
+        final before = remoteTracker('metformin').entries.length;
+        await logFromWidget('metformin', app.environment, clock: () => now);
+        expect(remoteTracker('metformin').entries, hasLength(before + 1));
+        final soon = now.add(const Duration(minutes: 1));
+        await logFromWidget(
+          'metformin',
+          app.environment,
+          undo: true,
+          clock: () => soon,
+        );
+        expect(remoteTracker('metformin').entries, hasLength(before));
+
+        // This morning's dose is too old to take back from the widget.
+        await logFromWidget(
+          'metformin',
+          app.environment,
+          undo: true,
+          clock: () => soon,
+        );
+        expect(remoteTracker('metformin').entries, hasLength(before));
+      },
+    );
+
     testWidgets('a tap on it opens Health', (tester) async {
       widget().launchLink = Uri.parse('geas://health');
       await app.pump(tester);

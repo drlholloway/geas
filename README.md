@@ -52,6 +52,7 @@ installing on each platform, setup, and every feature.
 geas setup                        # walks through repo, token, device
 geas add "Order 1N914s" -l pedals -t tayda -d "fri 5pm" -p high
 geas ls --today
+geas find order "#tayda" due:week  # search; --save <name> keeps it
 geas matrix                       # Do, Schedule, Delegate, Drop
 geas order S13H --vendor Tayda --number TE-1234567
 geas track S13H 9400111899223397846185 --eta fri

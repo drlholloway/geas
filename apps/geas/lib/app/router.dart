@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:geas_core/geas_core.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +7,7 @@ import '../features/health/health_screen.dart';
 import '../features/health/tracker_screen.dart';
 import '../features/matrix/matrix_screen.dart';
 import '../features/orders/orders_screen.dart';
+import '../features/search/search_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/setup/setup_screen.dart';
 import '../features/shell/app_shell.dart';
@@ -47,6 +49,15 @@ GoRouter createRouter() => GoRouter(
         GoRoute(
           path: '/health/:id',
           builder: (c, s) => TrackerScreen(id: s.pathParameters['id']!),
+        ),
+        GoRoute(path: '/search', builder: (c, s) => const SearchScreen()),
+        GoRoute(
+          path: '/filter/:id',
+          builder: (c, s) => SearchScreen(
+            // A new screen for each filter, so its query field starts over.
+            key: ValueKey(s.pathParameters['id']),
+            filterId: s.pathParameters['id'],
+          ),
         ),
         GoRoute(path: '/matrix', builder: (c, s) => const MatrixScreen()),
         GoRoute(path: '/settings', builder: (c, s) => const SettingsScreen()),

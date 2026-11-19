@@ -17,10 +17,12 @@ class TaskStore {
     required this.tasks,
     required Iterable<TaskList> lists,
     Iterable<Tracker> trackers = const [],
+    Iterable<SavedFilter> filters = const [],
     this.loaded = true,
     this.warnDays = defaultWarnDays,
   }) : lists = withInbox(lists),
-       trackers = sortTrackers(trackers);
+       trackers = sortTrackers(trackers),
+       filters = sortFilters(filters);
 
   /// Before the local copy has been read.
   TaskStore.loading() : this(tasks: const [], lists: const [], loaded: false);
@@ -33,6 +35,9 @@ class TaskStore {
   /// What the Health view logs (medications, sensors), in display order.
   final List<Tracker> trackers;
 
+  /// Saved searches, in display order.
+  final List<SavedFilter> filters;
+
   /// False until the local copy has been read.
   final bool loaded;
 
@@ -43,13 +48,22 @@ class TaskStore {
     List<Task>? tasks,
     Iterable<TaskList>? lists,
     Iterable<Tracker>? trackers,
+    Iterable<SavedFilter>? filters,
   }) => TaskStore(
     tasks: tasks ?? this.tasks,
     lists: lists ?? this.lists,
     trackers: trackers ?? this.trackers,
+    filters: filters ?? this.filters,
     loaded: loaded,
     warnDays: warnDays,
   );
+
+  SavedFilter? filterById(String id) {
+    for (final filter in filters) {
+      if (filter.id == id) return filter;
+    }
+    return null;
+  }
 
   Tracker? trackerById(String id) {
     for (final tracker in trackers) {
@@ -203,6 +217,34 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     });
   }
 
+  /// Adds [filter], or saves changes to it.
+  void saveFilter(SavedFilter filter) {
+    state = state.copyWith(
+      filters: [
+        for (final f in state.filters)
+          if (f.id != filter.id) f,
+        filter,
+      ],
+    );
+    _enqueue(() async {
+      await _workspace?.saveFilter(filter);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  void deleteFilter(String id) {
+    state = state.copyWith(
+      filters: [
+        for (final f in state.filters)
+          if (f.id != id) f,
+      ],
+    );
+    _enqueue(() async {
+      await _workspace?.deleteFilter(id);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
   /// Adds [tracker], or saves changes to it.
   void saveTracker(Tracker tracker) {
     state = state.copyWith(
@@ -337,6 +379,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
           tasks: workspace.tasks.toList(),
           lists: workspace.lists,
           trackers: workspace.trackers,
+          filters: workspace.filters,
           warnDays: workspace.warnDays,
         );
       });

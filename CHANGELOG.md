@@ -15,6 +15,12 @@ GitHub Release notes.
   date at the end, like `Order diodes #tayda ^pedals !high fri 5pm`, in
   the app's add field or `geas add`. `geas add --plain` takes the title
   as typed.
+- **Search and saved filters:** a Search view that finds tasks as you
+  type: words in the title or notes, `#tag`, `^list`, `!high`,
+  `due:today` (or `week`, `overdue`, `none`, `any`) and `is:done` or
+  `is:all`. Save a search as a filter and it gets its own entry in the
+  sidebar, synced to every device. In the CLI, `geas find`, with
+  `--save <name>` and `-f <filter>`, and `geas filters`.
 - **Background sync on Android:** Geas syncs about every half hour while
   it's closed, whenever there's a network, so the home-screen widget shows
   changes from your other devices without opening the app. Android may

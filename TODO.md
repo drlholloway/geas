@@ -43,6 +43,7 @@ Plan and status. Check items off as they land; move anything cut from v1 to
 geas-data/
   geas.yaml                 format: 1
   lists/<id>.yaml           id, name, color, order
+  filters/<id>.yaml         a saved search: id, name, query, order
   trackers/<id>.md          a medication or sensor and every time it was logged
   tasks/<id>.md             open and recently completed tasks
   archive/<yyyy>/<id>.md    tasks completed more than 30 days ago
@@ -415,6 +416,14 @@ how often.
       over the view's defaults; `geas add` does unless given `--plain`,
       and its options win
 
+- [x] Search and saved filters. `TaskQuery` in core reads one line:
+      words (in the title or notes), `#tag`, `^list`, `!high`,
+      `due:today|week|overdue|none|any` and `is:done|all`. A Search view in
+      the app; a search saved as a filter is `filters/<id>.yaml`
+      (`SavedFilter`), merges key by key like a list, and gets a sidebar
+      entry with its count. `geas find` (`--save`, `-f`) and
+      `geas filters`
+
 ## Later
 
 - Health: reminders when a dose or sensor is due, doses with amounts, and
@@ -428,7 +437,6 @@ how often.
 - Sign in through a registered Geas GitHub App (device flow): no token to
   copy, but an app to register and tokens to refresh every 8 hours
 - Habits and Pomodoro
-- Search and saved filters
 - Folders that group lists
 - Manual ordering within a list
 - OAuth device flow instead of a pasted token

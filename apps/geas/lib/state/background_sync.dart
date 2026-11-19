@@ -8,6 +8,7 @@ import 'package:workmanager/workmanager.dart';
 
 import 'environment.dart';
 import 'home_widget.dart';
+import 'sync_lock.dart';
 
 /// The name Android's WorkManager knows the periodic sync by.
 const backgroundSyncTask = 'dev.laneholloway.geas.sync';
@@ -83,12 +84,15 @@ Future<BackgroundSync> backgroundSync(
 
   final store = env.openStore(config.repo);
   try {
-    await Syncer(
-      github: env.connect(config.repo, token),
-      store: store,
-      device: config.device,
-      clock: clock,
-    ).sync();
+    // Waits out a task being ticked off on the widget.
+    await withSyncLock(
+      Syncer(
+        github: env.connect(config.repo, token),
+        store: store,
+        device: config.device,
+        clock: clock,
+      ).sync,
+    );
   } on Exception {
     return BackgroundSync.failed;
   }

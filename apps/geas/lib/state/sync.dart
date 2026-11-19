@@ -7,6 +7,7 @@ import 'conflicts.dart';
 import 'environment.dart';
 import 'session.dart';
 import 'store.dart';
+import 'sync_lock.dart';
 
 /// How long after an edit the app syncs, so a burst of edits goes out as
 /// one commit.
@@ -50,10 +51,16 @@ class SyncController extends Notifier<SyncStatus> {
   Future<void>? _running;
   var _again = false;
 
+  /// Held while this is syncing.
+  SyncLock? _lock;
+
   @override
   SyncStatus build() {
     ref.watch(sessionProvider);
-    ref.onDispose(() => _timer?.cancel());
+    ref.onDispose(() {
+      _timer?.cancel();
+      _lock?.release();
+    });
     return const SyncStatus();
   }
 
@@ -100,12 +107,18 @@ class SyncController extends Notifier<SyncStatus> {
         );
       } else {
         await tasks.flush();
-        await Syncer(
-          github: env.connect(session.repo, token),
-          store: session.store,
-          device: session.device,
-          clock: clock,
-        ).sync();
+        // Waits out the widget's or Android's background sync.
+        final lock = _lock = await SyncLock.acquire();
+        try {
+          await Syncer(
+            github: env.connect(session.repo, token),
+            store: session.store,
+            device: session.device,
+            clock: clock,
+          ).sync();
+        } finally {
+          lock.release();
+        }
         await tasks.reload();
         next = SyncStatus(lastSynced: clock());
         if (ref.mounted) ref.invalidate(conflictsProvider);

@@ -280,6 +280,10 @@ end to end.
       there's a network, with the app closed, and redraws the home-screen
       widget. A running app is asked to sync itself instead, so two syncs
       never work on the same files. Scheduled on every launch
+- [x] A sync lock (`SyncLock`): the app, the widget's background work
+      and the periodic sync run in separate isolates, so each takes a
+      named port before syncing and the others wait. A lock left by an
+      isolate Android killed is taken over
 - [x] macOS `com.apple.security.network.client` entitlement in both Debug
       and Release; Android `INTERNET` permission in the main manifest
 - [x] Phone layout on Android, sidebar layout at desktop widths (drawer

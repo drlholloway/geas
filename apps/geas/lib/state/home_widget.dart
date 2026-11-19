@@ -7,6 +7,7 @@ import 'package:geas_core/geas_core.dart';
 import 'package:home_widget/home_widget.dart';
 
 import 'environment.dart';
+import 'sync_lock.dart';
 
 /// The Android home-screen widget that shows the Eisenhower matrix. The app
 /// hands it a snapshot of the matrix ([matrixSnapshot]) whenever the tasks
@@ -162,12 +163,15 @@ Future<void> completeFromWidget(
   Future<bool> sync() async {
     if (token == null || token.isEmpty) return false;
     try {
-      await Syncer(
-        github: env.connect(config.repo, token),
-        store: store,
-        device: config.device,
-        clock: clock,
-      ).sync();
+      // Waits out a background sync that's running.
+      await withSyncLock(
+        Syncer(
+          github: env.connect(config.repo, token),
+          store: store,
+          device: config.device,
+          clock: clock,
+        ).sync,
+      );
     } on Exception {
       return false;
     }

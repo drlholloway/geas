@@ -86,16 +86,21 @@ class _HomeWidgetDriverState extends ConsumerState<HomeWidgetDriver> {
           warnDays: store.warnDays,
         ),
       );
+      unawaited(
+        showHealth(_host, store.trackers, now: ref.read(clockProvider)()),
+      );
     });
   }
 
-  /// `geas://matrix` or `geas://task/<id>`.
+  /// `geas://matrix`, `geas://health` or `geas://task/<id>`.
   void _open(Uri uri) {
     if (uri.scheme != 'geas') return;
     final id = uri.pathSegments.isEmpty ? null : uri.pathSegments.first;
     switch (uri.host) {
       case 'matrix':
         widget.router.go('/matrix');
+      case 'health':
+        widget.router.go('/health');
       case 'task' when id != null:
         widget.router.go('/matrix');
         unawaited(_openTask(id));
@@ -127,17 +132,25 @@ class _HomeWidgetDriverState extends ConsumerState<HomeWidgetDriver> {
     return loaded.future;
   }
 
-  /// A task ticked off on the widget, as `[id, reply]`. Replies whether
-  /// this app finished it; if not, the background does.
+  /// A task ticked off on the widget, as `[id, reply]`, or a tracker
+  /// logged on the Health widget, as `['log', id, reply]`. Replies whether
+  /// this app did it; if not, the background does.
   void _finish(Object? message) {
+    if (message case ['log', final String id, final SendPort reply]) {
+      final store = ref.read(taskStoreProvider);
+      final known = store.loaded && store.trackerById(id) != null;
+      if (known) ref.read(taskStoreProvider.notifier).logTracker(id);
+      reply.send(known);
+      return;
+    }
     if (message case [final String id, final SendPort reply]) {
       final store = ref.read(taskStoreProvider);
       final known = store.loaded && store.tasks.any((t) => t.id == id);
       if (known) {
-        final now = ref.read(clockProvider)();
-        ref
-            .read(taskStoreProvider.notifier)
-            .edit(id, (t) => t.isCompleted ? t : t.complete(now));
+        final task = store.tasks.firstWhere((t) => t.id == id);
+        if (!task.isCompleted) {
+          ref.read(taskStoreProvider.notifier).setDone(task, done: true);
+        }
       }
       reply.send(known);
     }

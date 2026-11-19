@@ -132,10 +132,7 @@ class _OrderSectionState extends ConsumerState<OrderSection> {
                   TextButton(
                     onPressed: () => ref
                         .read(taskStoreProvider.notifier)
-                        .edit(
-                          widget.task.id,
-                          (t) => t.complete(ref.read(clockProvider)()),
-                        ),
+                        .setDone(widget.task, done: true),
                     child: const Text('Mark done'),
                   ),
                 ],

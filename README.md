@@ -14,10 +14,13 @@ are plain Markdown files in a repo you own.
 - **Lists, tags, due dates with optional times, priorities, checklists and
   notes.** Inbox, Today and Next 7 days views.
 - **Health:** log each medication dose and CGM sensor change, and see how
-  often: doses a day, days of wear, and when the next is due.
+  often: doses or amounts a day, days of wear, and when the next is due.
+  On Android, a home-screen widget logs one with a tap.
 - **Eisenhower matrix:** Do, Schedule, Delegate and Drop, one per priority.
   Drag a task between quadrants to change its priority. Tasks due soon are
   bold amber; overdue ones are red.
+- **Reminders:** a notification when a task is due, or a medication or
+  sensor is due again.
 - **A home-screen widget on Android** with the four quadrants: tick tasks
   off without opening the app. Android syncs in the background, so the
   widget keeps up with your other devices.
@@ -52,6 +55,7 @@ installing on each platform, setup, and every feature.
 geas setup                        # walks through repo, token, device
 geas add "Order 1N914s" -l pedals -t tayda -d "fri 5pm" -p high
 geas ls --today
+geas find order "#tayda" due:week  # search; --save <name> keeps it
 geas matrix                       # Do, Schedule, Delegate, Drop
 geas order S13H --vendor Tayda --number TE-1234567
 geas track S13H 9400111899223397846185 --eta fri

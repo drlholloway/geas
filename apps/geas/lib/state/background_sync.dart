@@ -8,15 +8,11 @@ import 'package:workmanager/workmanager.dart';
 
 import 'environment.dart';
 import 'home_widget.dart';
+import 'reminders.dart';
 import 'sync_lock.dart';
 
 /// The name Android's WorkManager knows the periodic sync by.
 const backgroundSyncTask = 'dev.laneholloway.geas.sync';
-
-/// How often Android is asked to sync while the app is closed. Android
-/// runs it about this often, when there's a network, and may put it off to
-/// save battery.
-const backgroundSyncEvery = Duration(minutes: 30);
 
 /// The name the running app listens under for a background sync that came
 /// due, as a `SendPort`; it replies true and syncs itself.
@@ -37,19 +33,32 @@ enum BackgroundSync {
   failed,
 }
 
-/// Asks Android to run [backgroundSyncDispatcher] every
-/// [backgroundSyncEvery] while there's a network, whether or not the app
-/// is open. Safe to call on every launch.
-Future<void> scheduleBackgroundSync() async {
-  await Workmanager().initialize(backgroundSyncDispatcher);
-  await Workmanager().registerPeriodicTask(
-    backgroundSyncTask,
-    backgroundSyncTask,
-    frequency: backgroundSyncEvery,
-    constraints: Constraints(networkType: NetworkType.connected),
-    // Keeps the schedule it has, but picks up a changed frequency.
-    existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
-  );
+/// Schedules syncs for when the app is closed.
+abstract interface class BackgroundScheduler {
+  /// Syncs about every [every] from now on, or never if [on] is false.
+  /// Safe to call on every launch.
+  Future<void> apply({required bool on, required Duration every});
+}
+
+/// Android's WorkManager: runs [backgroundSyncDispatcher] about as often as
+/// asked while there's a network, whether or not the app is open. Android
+/// may put a run off to save battery.
+class AndroidBackgroundScheduler implements BackgroundScheduler {
+  const AndroidBackgroundScheduler();
+
+  @override
+  Future<void> apply({required bool on, required Duration every}) async {
+    await Workmanager().initialize(backgroundSyncDispatcher);
+    if (!on) return Workmanager().cancelByUniqueName(backgroundSyncTask);
+    await Workmanager().registerPeriodicTask(
+      backgroundSyncTask,
+      backgroundSyncTask,
+      frequency: every,
+      constraints: Constraints(networkType: NetworkType.connected),
+      // Keeps the schedule it has, but picks up a changed frequency.
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
+    );
+  }
 }
 
 /// Runs in a background isolate each time the periodic sync comes due.
@@ -102,6 +111,15 @@ Future<BackgroundSync> backgroundSync(
     workspace.tasks,
     now: clock(),
     warnDays: workspace.warnDays,
+  );
+  await showHealth(env.homeWidget, workspace.trackers, now: clock());
+  // What other devices changed moves this one's reminders too.
+  await scheduleReminders(
+    env.reminders,
+    on: config.reminders,
+    tasks: workspace.tasks,
+    trackers: workspace.trackers,
+    now: clock(),
   );
   return BackgroundSync.synced;
 }

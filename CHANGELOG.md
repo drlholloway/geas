@@ -6,10 +6,41 @@ GitHub Release notes.
 ## Unreleased
 
 ### Added
+- **Recurring tasks:** set a task to repeat every day, weekday, week,
+  month or year, or every so many ("10 days", "6 weeks"). Finishing it
+  adds the next one, due on the next date after today, with the same
+  list, tags, priority and notes and its checklist unticked. In the CLI,
+  `geas add -r weekly`.
+- **Quick add:** type `#tag`, `^list`, `!high` (or `!med`, `!low`) and a
+  date at the end, like `Order diodes #tayda ^pedals !high fri 5pm`, in
+  the app's add field or `geas add`. `geas add --plain` takes the title
+  as typed.
+- **Search and saved filters:** a Search view that finds tasks as you
+  type: words in the title or notes, `#tag`, `^list`, `!high`,
+  `due:today` (or `week`, `overdue`, `none`, `any`) and `is:done` or
+  `is:all`. Save a search as a filter and it gets its own entry in the
+  sidebar, synced to every device. In the CLI, `geas find`, with
+  `--save <name>` and `-f <filter>`, and `geas filters`.
+- **Reminders:** turn on **Remind me** in Settings and Geas notifies you
+  when a task is due (at 9:00 if it has no time) and when a medication or
+  sensor is due again. It's set per device. On Android and macOS they
+  arrive with Geas closed; on Linux only while it's open.
+- **Dose amounts in Health:** give a medication a unit and a usual dose
+  ("500 mg") and each time you log it carries an amount. The card, the
+  chart and `geas health` then show how much per day, not how many
+  times. Log a different amount with **A different amount** or
+  `geas log --amount`.
+- **A Health widget on Android:** your medications and sensors on the
+  home screen, with when each was last logged and is next due, and a
+  button to log one without opening the app.
 - **Background sync on Android:** Geas syncs about every half hour while
   it's closed, whenever there's a network, so the home-screen widget shows
   changes from your other devices without opening the app. Android may
   put a run off to save battery.
+- **Syncing on its own, everywhere:** while Geas is open it now syncs on
+  a timer on every platform, not only on launch, on return and after
+  edits. Settings has a switch for it and how often, from 15 minutes to
+  4 hours; on Android the same setting drives the background sync.
 
 ### Fixed
 - **Two syncs at once on Android:** ticking a task on the home-screen

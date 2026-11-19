@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../archive.dart';
+import '../filter.dart';
 import '../matrix.dart';
 import '../repo_config.dart';
 import '../task.dart';
@@ -26,6 +27,7 @@ class Workspace {
   final _taskPaths = <String, String>{};
   final _lists = <String, TaskList>{};
   final _trackers = <String, Tracker>{};
+  final _filters = <String, SavedFilter>{};
   final _problems = <String, String>{};
   RepoConfig? _config;
 
@@ -38,6 +40,9 @@ class Workspace {
   List<Tracker> get trackers => sortTrackers(_trackers.values);
 
   Tracker? tracker(String id) => _trackers[id];
+
+  /// Saved searches, in display order.
+  List<SavedFilter> get filters => sortFilters(_filters.values);
 
   /// Files that couldn't be read, by path, with the reason.
   Map<String, String> get problems => Map.unmodifiable(_problems);
@@ -56,6 +61,7 @@ class Workspace {
     _taskPaths.clear();
     _lists.clear();
     _trackers.clear();
+    _filters.clear();
     _problems.clear();
     _config = null;
     _index(await _area.readAll());
@@ -100,6 +106,17 @@ class Workspace {
     return _trackers[tracker.id] = Tracker.parse(text);
   }
 
+  Future<SavedFilter> saveFilter(SavedFilter filter) async {
+    final text = filter.encode();
+    await _area.write(filterPath(filter.id), utf8.encode(text));
+    return _filters[filter.id] = SavedFilter.parse(text);
+  }
+
+  Future<void> deleteFilter(String id) async {
+    _filters.remove(id);
+    await _area.delete(filterPath(id));
+  }
+
   /// Removes the tracker and its log.
   Future<void> deleteTracker(String id) async {
     _trackers.remove(id);
@@ -123,10 +140,14 @@ class Workspace {
               path.endsWith('.md');
       final isList = path.startsWith('lists/') && path.endsWith('.yaml');
       final isTracker = isTrackerPath(path);
-      if (!isTask && !isList && !isTracker) return;
+      final isFilter = isFilterPath(path);
+      if (!isTask && !isList && !isTracker && !isFilter) return;
       try {
         final text = utf8.decode(bytes);
-        if (isTracker) {
+        if (isFilter) {
+          final filter = SavedFilter.parse(text);
+          _filters[filter.id] = filter;
+        } else if (isTracker) {
           final tracker = Tracker.parse(text);
           _trackers[tracker.id] = tracker;
         } else if (isTask) {

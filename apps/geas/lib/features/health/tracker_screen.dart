@@ -65,6 +65,8 @@ class TrackerScreen extends ConsumerWidget {
               [
                 tracker.kind.label,
                 if (every != null) 'every ${spanLabel(every)}',
+                if (tracker.dose case final dose? when tracker.unit != null)
+                  '${formatAmount(dose)} ${tracker.unit} each',
                 if (stats.count > 0)
                   '${stats.count} logged since '
                       '${dayLabel(LocalDate.of(stats.first!.toLocal()), now, short: true)}',
@@ -98,6 +100,12 @@ class TrackerScreen extends ConsumerWidget {
                   icon: const Icon(Icons.history),
                   label: const Text('Log an earlier time'),
                 ),
+                if (tracker.unit != null)
+                  OutlinedButton.icon(
+                    onPressed: () => _logAmount(context, ref, tracker),
+                    icon: const Icon(Icons.scale_outlined),
+                    label: const Text('A different amount'),
+                  ),
               ],
             ),
           ],
@@ -154,10 +162,13 @@ class TrackerScreen extends ConsumerWidget {
                 key: ValueKey('${entry.at.toIso8601String()} ${entry.line}'),
                 dense: true,
                 title: Text(when),
-                subtitle: gap == null && entry.note == null
+                subtitle:
+                    gap == null && entry.note == null && entry.amount == null
                     ? null
                     : Text(
                         [
+                          if (entry.amount case final amount?)
+                            '${formatAmount(amount)} ${tracker.unit}',
                           if (gap != null) '${spanLabel(gap)} after the last',
                           ?entry.note,
                         ].join('  ·  '),
@@ -177,6 +188,47 @@ class TrackerScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Asks how much, then logs that now in place of the usual dose.
+Future<void> _logAmount(
+  BuildContext context,
+  WidgetRef ref,
+  Tracker tracker,
+) async {
+  final controller = TextEditingController();
+  final amount = await showDialog<double>(
+    context: context,
+    builder: (context) {
+      void done() {
+        final typed = double.tryParse(controller.text.trim());
+        if (typed != null && typed > 0) Navigator.pop(context, typed);
+      }
+
+      return AlertDialog(
+        title: Text('${tracker.kind.action} how much?'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: 'Amount',
+            suffixText: tracker.unit,
+          ),
+          onSubmitted: (_) => done(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(onPressed: done, child: const Text('Log')),
+        ],
+      );
+    },
+  );
+  if (amount == null) return;
+  ref.read(taskStoreProvider.notifier).logTracker(tracker.id, amount: amount);
 }
 
 /// Asks for a day and a time up to [now], then logs it.

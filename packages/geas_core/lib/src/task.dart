@@ -8,6 +8,7 @@ import 'checklist.dart';
 import 'due.dart';
 import 'order.dart';
 import 'priority.dart';
+import 'repeat.dart';
 import 'task_list.dart';
 import 'ulid.dart';
 import 'yaml_fields.dart';
@@ -41,6 +42,7 @@ class Task {
     DateTime? completed,
     this.body = '',
     this.order,
+    this.repeat,
     this.frontmatter,
   })  : tags = List.unmodifiable(tags),
         created = _toSecond(created),
@@ -100,6 +102,7 @@ class Task {
     final due = optionalString(map, 'due', what);
     final priority = optionalString(map, 'priority', what);
     final completed = optionalString(map, 'completed', what);
+    final repeat = optionalString(map, 'repeat', what);
     return Task(
       id: id,
       title: requireString(map, 'title', what),
@@ -113,6 +116,7 @@ class Task {
           completed == null ? null : _parseTimestamp(completed, 'completed'),
       body: body,
       order: map['order'] == null ? null : Order.parse(map['order']),
+      repeat: repeat == null ? null : Repeat.parse(repeat),
       frontmatter: frontmatter,
     );
   }
@@ -142,6 +146,10 @@ class Task {
   /// The order this task tracks, if any: the optional `order` map.
   final Order? order;
 
+  /// How often it comes back once done, if it repeats: the optional
+  /// `repeat` key. See [completeTask].
+  final Repeat? repeat;
+
   /// The frontmatter as it was read, or null for a task that hasn't been
   /// written yet. [encode] edits it in place, so comments, formatting and
   /// keys Geas doesn't know about survive.
@@ -161,6 +169,9 @@ class Task {
     final read = fresh
         ? null
         : Task._fromYaml(parseYamlMap(source, 'Frontmatter'), body: '');
+    // Optional, so a task that doesn't repeat has no `repeat` key unless
+    // it was read with one.
+    if (repeat == null && read?.repeat == null) fields.remove('repeat');
     var yaml = fresh
         ? emitYamlMap(fields)
         : patchYamlMap(source, fields, read!._fields());
@@ -205,10 +216,11 @@ class Task {
         'created': _formatTimestamp(created),
         'updated': _formatTimestamp(updated),
         'completed': completed == null ? null : _formatTimestamp(completed!),
+        'repeat': repeat?.toString(),
       };
 
   /// A copy with the given fields replaced. Pass null for [due],
-  /// [completed] or [order] to clear them. Callers set [updated] on every edit.
+  /// [completed], [order] or [repeat] to clear them. Callers set [updated] on every edit.
   Task copyWith({
     String? title,
     String? list,
@@ -219,6 +231,7 @@ class Task {
     Object? completed = _keep,
     String? body,
     Object? order = _keep,
+    Object? repeat = _keep,
   }) =>
       Task(
         id: id,
@@ -234,6 +247,7 @@ class Task {
             : completed as DateTime?,
         body: body ?? this.body,
         order: identical(order, _keep) ? this.order : order as Order?,
+        repeat: identical(repeat, _keep) ? this.repeat : repeat as Repeat?,
         frontmatter: frontmatter,
       );
 
@@ -262,11 +276,12 @@ class Task {
       other.updated == updated &&
       other.completed == completed &&
       other.body == body &&
-      other.order == order;
+      other.order == order &&
+      other.repeat == repeat;
 
   @override
   int get hashCode => Object.hash(id, title, list, Object.hashAll(tags), due,
-      priority, created, updated, completed, body, order);
+      priority, created, updated, completed, body, order, repeat);
 
   @override
   String toString() => 'Task($id, $title)';

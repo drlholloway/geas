@@ -5,6 +5,7 @@ import 'package:yaml/yaml.dart';
 import 'package:yaml_edit/yaml_edit.dart';
 
 import '../archive.dart';
+import '../filter.dart';
 import '../task.dart';
 import '../task_list.dart';
 import '../tracker.dart';
@@ -33,7 +34,8 @@ class TreeMerge {
 ///   recorded. `updated` becomes the later of the two.
 /// - Edited on one side and deleted on the other: the edit is kept and
 ///   recorded.
-/// - Lists merge key by key, with the remote winning a conflict.
+/// - Lists and saved filters merge key by key, with the remote winning a
+///   conflict.
 /// - Trackers merge their settings like lists and their logs as sets of
 ///   lines, so times logged on two devices are all kept.
 /// - Anything else changed on both sides keeps the remote and records the
@@ -72,6 +74,10 @@ TreeMerge mergeTrees({
     } else if (el.isList && er.isList) {
       kept =
           _mergeList((eb?.isList ?? false) ? eb : null, el, er, now, conflicts);
+    } else if (el.isFilter && er.isFilter) {
+      kept = _mergeList(
+          (eb?.isFilter ?? false) ? eb : null, el, er, now, conflicts,
+          parse: SavedFilter.parse);
     } else if (el.isTracker && er.isTracker) {
       kept = _mergeTracker(
           (eb?.isTracker ?? false) ? eb : null, el, er, now, conflicts);
@@ -93,6 +99,7 @@ class _Entry {
     this.task,
     this.isList = false,
     this.isTracker = false,
+    this.isFilter = false,
   });
 
   final String path;
@@ -106,6 +113,9 @@ class _Entry {
 
   /// A valid tracker file.
   final bool isTracker;
+
+  /// A valid saved-filter file.
+  final bool isFilter;
 
   String get key => task?.id ?? path;
   String get text => utf8.decode(bytes, allowMalformed: true);
@@ -130,6 +140,10 @@ _Entry _entry(String path, List<int> bytes) {
     if (path.startsWith('lists/') && path.endsWith('.yaml')) {
       TaskList.parse(utf8.decode(bytes));
       return _Entry(path, bytes, isList: true);
+    }
+    if (isFilterPath(path)) {
+      SavedFilter.parse(utf8.decode(bytes));
+      return _Entry(path, bytes, isFilter: true);
     }
     if (isTrackerPath(path)) {
       Tracker.parse(utf8.decode(bytes));
@@ -210,12 +224,13 @@ _Entry _mergeList(
   _Entry local,
   _Entry remote,
   DateTime now,
-  List<SyncConflict> conflicts,
-) {
+  List<SyncConflict> conflicts, {
+  Object Function(String text) parse = TaskList.parse,
+}) {
   final merged =
       _mergeYaml(base?.text, local.text, remote.text, localWins: false);
   try {
-    TaskList.parse(merged.text);
+    parse(merged.text);
   } on FormatException {
     conflicts.add(_fileConflict(remote, setAside: local, now: now));
     return remote;
@@ -231,7 +246,12 @@ _Entry _mergeList(
       setAside: local.text,
     ));
   }
-  return _Entry(remote.path, utf8.encode(merged.text), isList: true);
+  return _Entry(
+    remote.path,
+    utf8.encode(merged.text),
+    isList: remote.isList,
+    isFilter: remote.isFilter,
+  );
 }
 
 _Entry _mergeTracker(

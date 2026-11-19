@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geas/state/background_sync.dart';
 import 'package:geas/state/home_widget.dart';
 import 'package:geas_core/geas_core.dart';
 
@@ -186,5 +187,91 @@ void main() {
     app.offline = false;
     await syncDevice();
     expect(remote('Reply to the luthier').isCompleted, isTrue);
+  });
+
+  group('the Health widget', () {
+    Tracker remoteTracker(String id) =>
+        Tracker.parse(utf8.decode(app.github.files[trackerPath(id)]!));
+
+    testWidgets('shows each tracker\'s last time and next due', (tester) async {
+      await app.pump(tester);
+      await settle(tester);
+      final trackers = widget().trackers;
+      expect(trackers.keys, ['metformin', 'cgm-sensor']);
+      final sensor = trackers['cgm-sensor']!;
+      expect(sensor['name'], 'CGM sensor');
+      expect((sensor['action'], sensor['done']), ('Replace', 'Replaced'));
+      expect(
+        sensor['last'],
+        DateTime(2026, 11, 4, 9, 5).millisecondsSinceEpoch,
+      );
+      expect(
+        sensor['due'],
+        DateTime(2026, 11, 14, 9, 5).millisecondsSinceEpoch,
+      );
+      expect(trackers['metformin']!.containsKey('due'), isFalse);
+    });
+
+    testWidgets('its button logs through the running app', (tester) async {
+      await app.pump(tester);
+      await settle(tester);
+      final taken = await tester.runAsync(
+        () => handToApp('metformin', log: true),
+      );
+      expect(taken, isTrue);
+      await settle(tester);
+      expect(
+        widget().trackers['metformin']!['last'],
+        now.millisecondsSinceEpoch,
+      );
+      await tester.pump(const Duration(seconds: 6)); // the sync delay
+      await tester.pumpAndSettle();
+      expect(remoteTracker('metformin').entries.last.at.toLocal(), now);
+
+      expect(
+        await tester.runAsync(() => handToApp('nope', log: true)),
+        isFalse,
+      );
+    });
+
+    testWidgets('a tap on it opens Health', (tester) async {
+      widget().launchLink = Uri.parse('geas://health');
+      await app.pump(tester);
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(AppBar, 'Health'), findsOneWidget);
+    });
+
+    test('with no app running, the background logs and syncs it', () async {
+      await syncDevice();
+      final before = remoteTracker('cgm-sensor').entries.length;
+      await logFromWidget('cgm-sensor', app.environment, clock: () => now);
+      final tracker = remoteTracker('cgm-sensor');
+      expect(tracker.entries, hasLength(before + 1));
+      expect(tracker.entries.last.at.toLocal(), now);
+      expect(
+        widget().trackers['cgm-sensor']!['due'],
+        now.add(const Duration(days: 10)).millisecondsSinceEpoch,
+      );
+    });
+
+    test('offline, the background logs it here for the next sync', () async {
+      await syncDevice();
+      final before = remoteTracker('metformin').entries.length;
+      app.offline = true;
+      await logFromWidget('metformin', app.environment, clock: () => now);
+      expect(remoteTracker('metformin').entries, hasLength(before));
+      expect(
+        widget().trackers['metformin']!['last'],
+        now.millisecondsSinceEpoch,
+      );
+      app.offline = false;
+      await syncDevice();
+      expect(remoteTracker('metformin').entries, hasLength(before + 1));
+    });
+
+    test('a background sync redraws it', () async {
+      await backgroundSync(app.environment, clock: () => now);
+      expect(widget().trackers.keys, ['metformin', 'cgm-sensor']);
+    });
   });
 }

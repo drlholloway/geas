@@ -121,6 +121,80 @@ void main() {
     expect(moveTracker([a, b, c], 'nope', 0), isEmpty);
   });
 
+  group('dose amounts', () {
+    final insulin = newTracker('Insulin', const [], unit: 'u', dose: 12);
+
+    test('the unit and usual dose are written and read back', () {
+      expect(insulin.encode(),
+          '---\nid: insulin\nname: Insulin\nkind: med\nunit: u\ndose: 12\norder: 1\n---\n');
+      expect(Tracker.parse(insulin.encode()), insulin);
+      final half = insulin.copyWith(dose: 2.5);
+      expect(half.encode(), contains('dose: 2.5\n'));
+      expect(Tracker.parse(half.encode()).dose, 2.5);
+      expect(
+          Tracker.parse(insulin.copyWith(unit: null, dose: null).encode()).unit,
+          isNull);
+    });
+
+    test('an entry carries the usual dose, or the one given', () {
+      var tracker = insulin.log(_at(14, 8));
+      tracker = tracker.log(_at(14, 20), amount: 7.5, note: 'small dinner');
+      tracker = Tracker.parse(tracker.encode());
+      expect(tracker.body, contains(' 12u\n'));
+      expect(tracker.body, endsWith(' 7.5u small dinner\n'));
+      expect(tracker.entries.map((e) => e.amount), [12, 7.5]);
+      expect(tracker.entries.last.note, 'small dinner');
+      expect(tracker.withoutEntry(tracker.entries.first).entries.single.amount,
+          7.5);
+    });
+
+    test('amounts are read only in the tracker\'s unit', () {
+      final tracker =
+          Tracker.parse('---\nid: met\nname: Metformin\nunit: mg\n---\n'
+              '- 2026-11-14T08:00:00Z 500mg\n'
+              '- 2026-11-14T12:00:00Z 250MG half\n'
+              '- 2026-11-14T20:00:00Z 2 hours late\n'
+              '- 2026-11-14T21:00:00Z 500mcg typo\n');
+      expect(tracker.entries.map((e) => e.amount), [500, 250, null, null]);
+      expect(tracker.entries.map((e) => e.note),
+          [null, 'half', '2 hours late', '500mcg typo']);
+      // With no unit, it's all note.
+      final plain = Tracker.parse(
+          '---\nid: met\nname: M\n---\n- 2026-11-14T08:00:00Z 500mg\n');
+      expect(plain.entries.single.amount, isNull);
+      expect(plain.entries.single.note, '500mg');
+      expect(plain.log(_at(15, 8), amount: 5).entries.last.amount, isNull);
+    });
+
+    test('totals for today and per day', () {
+      final now = _at(15, 12);
+      var tracker = insulin;
+      for (var day = 12; day <= 14; day++) {
+        tracker = tracker.log(_at(day, 8)).log(_at(day, 20), amount: 8);
+      }
+      tracker = tracker.log(_at(15, 8), amount: 10);
+      final stats = TrackerStats.of(tracker, now);
+      expect(stats.amountToday, 10);
+      expect(stats.amountPerDayWeek, closeTo(70 / 4, 1e-9));
+      expect(dailyAmounts(tracker, now, days: 5), [0, 20, 20, 20, 10]);
+      expect(TrackerStats.of(newTracker('Plain', const []), now).amountToday,
+          isNull);
+    });
+
+    test('bad units and doses are refused', () {
+      expect(() => Tracker.parse('---\nid: a\nname: A\nunit: fl oz\n---\n'),
+          throwsFormatException);
+      expect(() => Tracker.parse('---\nid: a\nname: A\ndose: lots\n---\n'),
+          throwsFormatException);
+      // The unit can ride on the dose, as people write it.
+      final written = Tracker.parse('---\nid: a\nname: A\ndose: 500 mg\n---\n');
+      expect((written.dose, written.unit), (500, 'mg'));
+      expect(formatAmount(500), '500');
+      expect(formatAmount(2.50), '2.5');
+      expect(formatAmount(0.125), '0.125');
+    });
+  });
+
   group('stats', () {
     final now = _at(15, 12);
 

@@ -213,6 +213,10 @@ class _TaskDetailState extends ConsumerState<_TaskDetail> {
                   priority: task.priority,
                   onSelected: (p) => _edit((t) => t.copyWith(priority: p)),
                 ),
+                _RepeatChip(
+                  repeat: task.repeat,
+                  onSelected: (r) => _edit((t) => t.copyWith(repeat: r)),
+                ),
                 for (final tag in task.tags)
                   InputChip(
                     label: Text('#$tag'),
@@ -542,6 +546,107 @@ class _PriorityChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// How often the task comes back once it's done.
+class _RepeatChip extends StatelessWidget {
+  const _RepeatChip({required this.repeat, required this.onSelected});
+
+  final Repeat? repeat;
+  final void Function(Repeat? repeat) onSelected;
+
+  static const _choices = [
+    Repeat(1, RepeatUnit.day),
+    Repeat.weekdays(),
+    Repeat(1, RepeatUnit.week),
+    Repeat(2, RepeatUnit.week),
+    Repeat(1, RepeatUnit.month),
+    Repeat(3, RepeatUnit.month),
+    Repeat(1, RepeatUnit.year),
+  ];
+
+  /// Asks for a repeat Geas has no menu entry for, like "10d" or "6 weeks".
+  Future<void> _custom(BuildContext context) async {
+    final typed = await showDialog<Repeat>(
+      context: context,
+      builder: (context) => _RepeatDialog(initial: repeat),
+    );
+    if (typed != null) onSelected(typed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final repeat = this.repeat;
+    return PopupMenuButton<Object>(
+      tooltip: 'Repeat',
+      onSelected: (choice) => switch (choice) {
+        final Repeat r => onSelected(r),
+        'none' => onSelected(null),
+        _ => _custom(context),
+      },
+      itemBuilder: (context) => [
+        for (final r in _choices) PopupMenuItem(value: r, child: Text(r.label)),
+        const PopupMenuItem(value: 'custom', child: Text('Other…')),
+        if (repeat != null)
+          const PopupMenuItem(value: 'none', child: Text('Don\'t repeat')),
+      ],
+      child: Chip(
+        avatar: const Icon(Icons.repeat, size: 16),
+        label: Text(repeat?.label ?? 'Repeat'),
+      ),
+    );
+  }
+}
+
+class _RepeatDialog extends StatefulWidget {
+  const _RepeatDialog({this.initial});
+
+  final Repeat? initial;
+
+  @override
+  State<_RepeatDialog> createState() => _RepeatDialogState();
+}
+
+class _RepeatDialogState extends State<_RepeatDialog> {
+  late final _text = TextEditingController(text: widget.initial?.toString());
+  String? _error;
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    try {
+      Navigator.pop(context, Repeat.parse(_text.text));
+    } on FormatException {
+      setState(() => _error = 'Like 10d, 6 weeks or 2 months');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Repeat every'),
+    content: TextField(
+      controller: _text,
+      autofocus: true,
+      autocorrect: false,
+      decoration: InputDecoration(
+        hintText: '10d, 6 weeks, 2 months',
+        errorText: _error,
+      ),
+      onChanged: (_) => setState(() => _error = null),
+      onSubmitted: (_) => _save(),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(onPressed: _save, child: const Text('Set')),
+    ],
+  );
 }
 
 class _TagDialog extends StatefulWidget {

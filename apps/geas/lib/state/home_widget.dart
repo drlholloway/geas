@@ -7,6 +7,7 @@ import 'package:geas_core/geas_core.dart';
 import 'package:home_widget/home_widget.dart';
 
 import 'environment.dart';
+import 'reminders.dart';
 import 'sync_lock.dart';
 
 /// The Android home-screen widget that shows the Eisenhower matrix. The app
@@ -21,6 +22,10 @@ abstract interface class HomeWidgetHost {
   /// Gives the widget [snapshot], a JSON [matrixSnapshot], and redraws it.
   Future<void> show(String snapshot);
 
+  /// Gives the Health widget [snapshot], a JSON [healthSnapshot], and
+  /// redraws it.
+  Future<void> showHealth(String snapshot);
+
   /// The link that launched the app, if a widget tap did.
   Future<Uri?> launchedFrom();
 
@@ -31,11 +36,18 @@ abstract interface class HomeWidgetHost {
 /// The real widget, through the home_widget plugin.
 class AndroidHomeWidget implements HomeWidgetHost {
   static const _receiver = 'dev.laneholloway.geas.MatrixWidgetReceiver';
+  static const _healthReceiver = 'dev.laneholloway.geas.HealthWidgetReceiver';
 
   @override
   Future<void> show(String snapshot) async {
     await HomeWidget.saveWidgetData<String>(snapshotKey, snapshot);
     await HomeWidget.updateWidget(qualifiedAndroidName: _receiver);
+  }
+
+  @override
+  Future<void> showHealth(String snapshot) async {
+    await HomeWidget.saveWidgetData<String>(healthSnapshotKey, snapshot);
+    await HomeWidget.updateWidget(qualifiedAndroidName: _healthReceiver);
   }
 
   @override
@@ -46,8 +58,9 @@ class AndroidHomeWidget implements HomeWidgetHost {
       HomeWidget.widgetClicked.where((uri) => uri != null).cast<Uri>();
 }
 
-/// Where the snapshot is kept for the widget.
+/// Where the snapshots are kept for the widgets.
 const snapshotKey = 'matrix';
+const healthSnapshotKey = 'health';
 
 /// Most tasks a quadrant sends; the widget scrolls through these and shows
 /// the full count.
@@ -102,6 +115,50 @@ Future<void> showMatrix(
   );
 }
 
+/// The [trackers] for the Health widget to draw: each one's name, the words
+/// for logging it, and when it was last logged (`last`) and is next due
+/// (`due`), in milliseconds since the epoch, if it has them. The widget
+/// works out what's overdue itself.
+Map<String, Object?> healthSnapshot(
+  Iterable<Tracker> trackers, {
+  required DateTime now,
+}) => {
+  'version': 1,
+  'trackers': [
+    for (final tracker in trackers)
+      () {
+        final stats = TrackerStats.of(tracker, now);
+        return {
+          'id': tracker.id,
+          'name': tracker.name,
+          'action': tracker.kind.action,
+          'done': tracker.kind.done,
+          if (stats.last case final last?) 'last': last.millisecondsSinceEpoch,
+          if (stats.nextDue case final due?) 'due': due.millisecondsSinceEpoch,
+        };
+      }(),
+  ],
+};
+
+/// Sends [trackers] to the Health widget, if there is one.
+Future<void> showHealth(
+  HomeWidgetHost? host,
+  Iterable<Tracker> trackers, {
+  required DateTime now,
+}) async {
+  if (host == null) return;
+  await host.showHealth(jsonEncode(healthSnapshot(trackers, now: now)));
+}
+
+/// The id in a `geas://log/<id>` link, else null.
+String? logTrackerId(Uri? uri) =>
+    uri != null &&
+        uri.scheme == 'geas' &&
+        uri.host == 'log' &&
+        uri.pathSegments.length == 1
+    ? uri.pathSegments.single
+    : null;
+
 /// The id in a `geas://done/<id>` link, else null.
 String? doneTaskId(Uri? uri) =>
     uri != null &&
@@ -112,12 +169,19 @@ String? doneTaskId(Uri? uri) =>
     : null;
 
 /// The name the running app listens under for tasks ticked off on the
-/// widget, as `[id, SendPort reply]`; it replies true once it has them.
+/// widget, as `[id, SendPort reply]`, and trackers logged on it, as
+/// `['log', id, SendPort reply]`; it replies true once it has them.
 const donePortName = 'geas.widget.done';
 
-/// Runs in a background isolate when a widget checkbox is tapped.
+/// Runs in a background isolate when a widget checkbox or a Health
+/// widget's button is tapped.
 @pragma('vm:entry-point')
 Future<void> homeWidgetCallback(Uri? uri) async {
+  final tracker = logTrackerId(uri);
+  if (tracker != null) {
+    if (await handToApp(tracker, log: true)) return;
+    return logFromWidget(tracker, await AppEnvironment.platform());
+  }
   final id = doneTaskId(uri);
   if (id == null) return;
   // The app is open: let it finish the task, so its copy stays current
@@ -127,16 +191,18 @@ Future<void> homeWidgetCallback(Uri? uri) async {
 }
 
 /// Passes [id] to the running app, if it's listening, and waits for it to
-/// take it. False if there's no app or it didn't answer.
+/// take it: a task to finish, or with [log] a tracker to log now. False if
+/// there's no app or it didn't answer.
 Future<bool> handToApp(
   String id, {
+  bool log = false,
   Duration wait = const Duration(seconds: 2),
 }) async {
   final app = IsolateNameServer.lookupPortByName(donePortName);
   if (app == null) return false;
   final reply = ReceivePort();
   try {
-    app.send([id, reply.sendPort]);
+    app.send(log ? ['log', id, reply.sendPort] : [id, reply.sendPort]);
     return await reply.first.timeout(wait) == true;
   } on TimeoutException {
     // Registered by an app that has since closed.
@@ -184,7 +250,10 @@ Future<void> completeFromWidget(
     final task = workspace.task(id);
     if (task == null || task.isCompleted) return false;
     final now = clock();
-    await workspace.saveTask(task.complete(now), now: now);
+    // A repeating task also gets its next one.
+    for (final saved in completeTask(task, now)) {
+      await workspace.saveTask(saved, now: now);
+    }
     return true;
   }
 
@@ -199,6 +268,68 @@ Future<void> completeFromWidget(
   if (workspace.task(id) == null && !await sync()) return;
   final finished = await finish();
   await redraw();
+  // A finished task's reminder goes; a repeating one's next is set.
+  if (finished) {
+    await scheduleReminders(
+      env.reminders,
+      on: config.reminders,
+      tasks: workspace.tasks,
+      trackers: workspace.trackers,
+      now: clock(),
+    );
+  }
   // Offline, the change goes out with the next sync.
   if (finished && await sync()) await redraw();
+}
+
+/// Logs the tracker with [id] now in this device's copy, redraws the Health
+/// widget, then syncs. Offline, the change goes out with the next sync.
+Future<void> logFromWidget(
+  String id,
+  AppEnvironment env, {
+  DateTime Function() clock = DateTime.now,
+}) async {
+  final config = await env.config.load();
+  if (config == null) return;
+  final store = env.openStore(config.repo);
+  final workspace = await Workspace.load(store.working);
+  final token = await env.tokens.read(config.repo);
+
+  /// Syncs and re-reads the copy; false if the sync failed.
+  Future<bool> sync() async {
+    if (token == null || token.isEmpty) return false;
+    try {
+      await withSyncLock(
+        Syncer(
+          github: env.connect(config.repo, token),
+          store: store,
+          device: config.device,
+          clock: clock,
+        ).sync,
+      );
+    } on Exception {
+      return false;
+    }
+    await workspace.reload();
+    return true;
+  }
+
+  Future<void> redraw() =>
+      showHealth(env.homeWidget, workspace.trackers, now: clock());
+
+  // Not in this copy, as when the app's data was cleared: fetch it first.
+  if (workspace.tracker(id) == null && !await sync()) return;
+  final tracker = workspace.tracker(id);
+  if (tracker != null) await workspace.saveTracker(tracker.log(clock()));
+  await redraw();
+  if (tracker == null) return;
+  // Its next reminder counts from this log.
+  await scheduleReminders(
+    env.reminders,
+    on: config.reminders,
+    tasks: workspace.tasks,
+    trackers: workspace.trackers,
+    now: clock(),
+  );
+  if (await sync()) await redraw();
 }

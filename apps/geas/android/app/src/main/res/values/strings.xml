@@ -2,4 +2,6 @@
 <resources>
     <string name="matrix_widget_label">Eisenhower matrix</string>
     <string name="matrix_widget_description">Your open tasks in Do, Schedule, Delegate and Drop. Tick one off from here.</string>
+    <string name="health_widget_label">Health</string>
+    <string name="health_widget_description">Your medications and sensors: when each was last logged and is next due. Log one from here.</string>
 </resources>

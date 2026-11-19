@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:isolate';
 import 'dart:ui';
 
@@ -152,10 +153,23 @@ class _SyncDriverState extends ConsumerState<SyncDriver> {
   /// it to sync instead.
   final _asked = ReceivePort();
 
+  /// Syncs every so often while the app is open.
+  Timer? _periodic;
+
   @override
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(onResume: _sync);
+    ref.listenManual(
+      configProvider.select(
+        (c) => switch (c.value) {
+          final config? => (config.backgroundSync, config.syncMinutes),
+          null => null,
+        },
+      ),
+      (_, setting) => _schedule(setting),
+      fireImmediately: true,
+    );
     _asked.listen((message) {
       if (message is! SendPort) return;
       message.send(mounted);
@@ -170,9 +184,28 @@ class _SyncDriverState extends ConsumerState<SyncDriver> {
     if (mounted) ref.read(syncProvider.notifier).sync();
   }
 
+  /// Applies the background sync setting: a timer while the app is open,
+  /// and Android's own schedule for when it isn't.
+  void _schedule((bool, int)? setting) {
+    _periodic?.cancel();
+    _periodic = null;
+    if (setting == null) return;
+    final (on, minutes) = setting;
+    final every = Duration(minutes: minutes);
+    if (on) _periodic = Timer.periodic(every, (_) => _sync());
+    unawaited(
+      ref
+          .read(environmentProvider)
+          .backgroundScheduler
+          ?.apply(on: on, every: every)
+          .catchError((Object e) => debugPrint('geas: background sync: $e')),
+    );
+  }
+
   @override
   void dispose() {
     _lifecycle.dispose();
+    _periodic?.cancel();
     IsolateNameServer.removePortNameMapping(syncPortName);
     _asked.close();
     super.dispose();

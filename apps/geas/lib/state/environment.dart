@@ -10,7 +10,19 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'background_sync.dart';
 import 'home_widget.dart';
+import 'reminders.dart';
+
+const _keep = Object();
+
+/// How often a device syncs on its own unless told otherwise, and the
+/// shortest Android's WorkManager allows.
+const defaultSyncMinutes = 30;
+const minSyncMinutes = 15;
+
+/// The intervals Settings offers, in minutes.
+const syncMinuteChoices = [15, 30, 60, 120, 240];
 
 /// Which data repo this device syncs with, and as what.
 class AppConfig {
@@ -18,6 +30,9 @@ class AppConfig {
     required this.repo,
     required this.device,
     this.tokenExpires,
+    this.backgroundSync = true,
+    this.syncMinutes = defaultSyncMinutes,
+    this.reminders = false,
   });
 
   factory AppConfig.fromJson(Map<String, Object?> json) => AppConfig(
@@ -27,6 +42,12 @@ class AppConfig {
       final String text => DateTime.parse(text),
       _ => null,
     },
+    backgroundSync: json['background_sync'] as bool? ?? true,
+    syncMinutes: switch (json['sync_minutes']) {
+      final int minutes when minutes >= minSyncMinutes => minutes,
+      _ => defaultSyncMinutes,
+    },
+    reminders: json['reminders'] as bool? ?? false,
   );
 
   final RepoRef repo;
@@ -37,11 +58,43 @@ class AppConfig {
   /// When the stored token stops working, if GitHub said.
   final DateTime? tokenExpires;
 
+  /// Whether this device syncs on its own every [syncMinutes]: in the
+  /// background on Android, and while the app is open everywhere.
+  final bool backgroundSync;
+
+  /// Minutes between those syncs; Android won't go below [minSyncMinutes].
+  final int syncMinutes;
+
+  /// Whether this device shows a notification when a task comes due, or a
+  /// medication or sensor is due again.
+  final bool reminders;
+
+  /// A copy with the given fields replaced. Pass null for [tokenExpires] to
+  /// clear it.
+  AppConfig copyWith({
+    Object? tokenExpires = _keep,
+    bool? backgroundSync,
+    int? syncMinutes,
+    bool? reminders,
+  }) => AppConfig(
+    repo: repo,
+    device: device,
+    tokenExpires: identical(tokenExpires, _keep)
+        ? this.tokenExpires
+        : tokenExpires as DateTime?,
+    backgroundSync: backgroundSync ?? this.backgroundSync,
+    syncMinutes: syncMinutes ?? this.syncMinutes,
+    reminders: reminders ?? this.reminders,
+  );
+
   Map<String, Object?> toJson() => {
     'repo': '$repo',
     'device': device,
     if (tokenExpires != null)
       'token_expires': tokenExpires!.toUtc().toIso8601String(),
+    if (!backgroundSync) 'background_sync': false,
+    if (syncMinutes != defaultSyncMinutes) 'sync_minutes': syncMinutes,
+    if (reminders) 'reminders': true,
   };
 }
 
@@ -131,6 +184,8 @@ class AppEnvironment {
     required this.openUrl,
     required this.hostname,
     this.homeWidget,
+    this.backgroundScheduler,
+    this.reminders,
     this.version = '',
   });
 
@@ -151,6 +206,10 @@ class AppEnvironment {
           ? Platform.operatingSystem
           : host,
       homeWidget: Platform.isAndroid ? AndroidHomeWidget() : null,
+      backgroundScheduler: Platform.isAndroid
+          ? const AndroidBackgroundScheduler()
+          : null,
+      reminders: LocalNotifications(),
       version: (await PackageInfo.fromPlatform()).version,
     );
   }
@@ -171,6 +230,13 @@ class AppEnvironment {
 
   /// The home-screen matrix widget, on Android.
   final HomeWidgetHost? homeWidget;
+
+  /// Schedules syncs while the app is closed, on Android. Elsewhere the
+  /// app only syncs while it's open.
+  final BackgroundScheduler? backgroundScheduler;
+
+  /// Shows reminders as notifications; null where that can't be done.
+  final ReminderHost? reminders;
 
   /// This build's version, as in pubspec.yaml.
   final String version;

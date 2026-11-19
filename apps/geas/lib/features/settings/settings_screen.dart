@@ -102,6 +102,73 @@ class SettingsScreen extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go('/conflicts'),
             ),
+          SwitchListTile(
+            secondary: const Icon(Icons.autorenew),
+            title: const Text('Sync on its own'),
+            subtitle: Text(
+              env.backgroundScheduler == null
+                  ? 'While Geas is open.'
+                  : 'In the background, even when Geas is closed, whenever '
+                        'there\'s a network. Android may put a sync off to '
+                        'save battery.',
+            ),
+            value: config.backgroundSync,
+            onChanged: (on) => ref
+                .read(configProvider.notifier)
+                .save(config.copyWith(backgroundSync: on)),
+          ),
+          if (config.backgroundSync)
+            ListTile(
+              leading: const Icon(Icons.timer_outlined),
+              title: const Text('How often'),
+              trailing: DropdownButton<int>(
+                value: config.syncMinutes,
+                underline: const SizedBox.shrink(),
+                items: [
+                  for (final minutes in {
+                    ...syncMinuteChoices,
+                    config.syncMinutes,
+                  }.toList()..sort())
+                    DropdownMenuItem(
+                      value: minutes,
+                      child: Text(_everyLabel(minutes)),
+                    ),
+                ],
+                onChanged: (minutes) => ref
+                    .read(configProvider.notifier)
+                    .save(config.copyWith(syncMinutes: minutes)),
+              ),
+            ),
+          if (env.reminders != null) ...[
+            heading('Reminders'),
+            SwitchListTile(
+              secondary: const Icon(Icons.notifications_outlined),
+              title: const Text('Remind me'),
+              subtitle: const Text(
+                'A notification when a task is due (at 9:00 if it has no '
+                'time), and when a medication or sensor is due again. Set '
+                'for this device only.',
+              ),
+              value: config.reminders,
+              onChanged: (on) async {
+                final messenger = ScaffoldMessenger.of(context);
+                if (on && !await env.reminders!.requestPermission()) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Notifications are turned off for Geas. Allow them '
+                        'in the system settings, then try again.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+                await ref
+                    .read(configProvider.notifier)
+                    .save(config.copyWith(reminders: on));
+              },
+            ),
+          ],
           heading('Token'),
           ListTile(
             leading: const Icon(Icons.key_outlined),
@@ -221,3 +288,12 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 }
+
+/// "Every 15 minutes", "Every hour", "Every 2 hours".
+String _everyLabel(int minutes) => minutes < 60
+    ? 'Every $minutes minutes'
+    : minutes == 60
+    ? 'Every hour'
+    : minutes % 60 == 0
+    ? 'Every ${minutes ~/ 60} hours'
+    : 'Every $minutes minutes';

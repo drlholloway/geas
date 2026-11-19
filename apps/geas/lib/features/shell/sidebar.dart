@@ -119,6 +119,18 @@ class Sidebar extends ConsumerWidget {
                   Icons.medication_outlined,
                   count: healthDue,
                 ),
+                page('/search', 'Search', Icons.search),
+                if (store.filters.isNotEmpty) heading('Filters'),
+                for (final filter in store.filters)
+                  page(
+                    '/filter/${filter.id}',
+                    filter.name,
+                    Icons.filter_list,
+                    count: TaskQuery.parse(
+                      filter.query,
+                      lists: store.lists,
+                    ).search(store.tasks, now).length,
+                  ),
                 heading(
                   'Lists',
                   action: IconButton(

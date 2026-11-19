@@ -43,6 +43,7 @@ Plan and status. Check items off as they land; move anything cut from v1 to
 geas-data/
   geas.yaml                 format: 1
   lists/<id>.yaml           id, name, color, order
+  filters/<id>.yaml         a saved search: id, name, query, order
   trackers/<id>.md          a medication or sensor and every time it was logged
   tasks/<id>.md             open and recently completed tasks
   archive/<yyyy>/<id>.md    tasks completed more than 30 days ago
@@ -58,6 +59,8 @@ list: inbox                    # list id; inbox is built in
 tags: [tayda, pedals]
 due: 2026-11-12                # or 2026-11-12T09:00-06:00 with a time
 priority: high                 # none | low | medium | high
+repeat: weekly                 # optional: daily | weekdays | weekly |
+                               # monthly | yearly | 2w, 10d, 3m...
 created: 2026-11-08T23:41:02Z
 updated: 2026-11-08T23:41:02Z
 completed: null                # UTC timestamp once done
@@ -108,12 +111,17 @@ name: CGM sensor
 kind: sensor                   # med (the default) | sensor
 every: 10d                     # optional: 12h, 10d, 2w; next is due this
 order: 2                       # long after the last
+unit: mg                       # optional: what doses are measured in
+dose: 500                      # optional: the usual amount, in that unit
 ---
 - 2026-10-26T09:05:00-05:00
 - 2026-11-04T09:05:00-06:00 the old one fell off early
+- 2026-11-15T08:02:11-06:00 500mg with dinner
 ```
 
-Each entry is a local time with its offset, then an optional note. Seconds
+Each entry is a local time with its offset, then an optional note. With a
+`unit`, a first word that is a number followed by that unit (`500mg`) is
+the entry's amount. Seconds
 and the offset may be left out when writing one by hand. Lines that aren't
 entries are kept as notes.
 
@@ -397,23 +405,69 @@ how often.
       screenshots (`just screenshots` draws `health`, `health-tracker`
       and `phone-health`)
 
+## Phase 8: 0.4.0
+
+- [x] Recurring tasks: an optional `repeat` key (`Repeat` in core).
+      Finishing one (`completeTask`) completes it and adds a new task with
+      the same title, list, tags, priority and notes, the checklist
+      unticked, due on the next date after today, counted from the due
+      date. The finished one stops repeating. A Repeat chip in the task
+      sheet, the repeat on each row, and `geas add -r`
+
+- [x] Quick-add syntax, shared by the app and CLI (`parseQuickAdd` in
+      core): `#tag`, `^list`, `!high` / `!med` / `!low` (or `!!!`, `!!`,
+      `!`), and a date at the very end (`tomorrow`, `fri 5pm`). Anything
+      it doesn't recognize stays in the title. The app's add field uses it
+      over the view's defaults; `geas add` does unless given `--plain`,
+      and its options win
+
+- [x] Search and saved filters. `TaskQuery` in core reads one line:
+      words (in the title or notes), `#tag`, `^list`, `!high`,
+      `due:today|week|overdue|none|any` and `is:done|all`. A Search view in
+      the app; a search saved as a filter is `filters/<id>.yaml`
+      (`SavedFilter`), merges key by key like a list, and gets a sidebar
+      entry with its count. `geas find` (`--save`, `-f`) and
+      `geas filters`
+
+- [x] Background sync settings: a per-device switch and interval
+      (15 minutes to 4 hours) in Settings, kept in the device's
+      `config.json`. Android reschedules or cancels its WorkManager job
+      (`BackgroundScheduler`). On every platform the open app also syncs
+      on a timer at that interval, which is what macOS and Linux get:
+      nothing there syncs while Geas is closed
+
+- [x] Reminders as local notifications (`flutter_local_notifications`),
+      off until turned on in Settings, which asks the system's permission;
+      the switch is per device (`config.json`). `upcomingReminders` in
+      core picks the next 48: each open task at its due time, or at 9:00
+      on its due date, and each tracker with an `every` when its next is
+      due. The app sets them again whenever tasks or trackers change, and
+      so do background sync and the widget's checkbox. Android and macOS
+      hold the schedule, so they arrive with Geas closed; Android's are
+      inexact (within a few minutes) to avoid the exact-alarm permission.
+      Linux has no scheduler, so there they show only while Geas is open
+
+- [x] Health: dose amounts. A tracker can have a `unit` and a usual
+      `dose`; each entry then carries an amount (`500mg`), the usual one
+      unless another is given. Cards, the chart and `geas health` total the
+      amount per day in place of counting times; "A different amount" in
+      the app and `geas log --amount`
+- [x] Health on the Android home screen: a second widget (`HealthWidget`,
+      Glance) with each tracker's last time and next due, by the clock so
+      they don't go stale, overdue in amber, and a Take or Replace button
+      that logs now: handed to the app if it's running, else logged and
+      synced in a background isolate (`logFromWidget`)
+
 ## Later
 
-- Health: reminders when a dose or sensor is due, doses with amounts, and
-  the Android widget
-
-- Reminders as local notifications on each device. Dismissals sync, so a
-  device that hasn't synced yet may still fire one.
-- Recurring tasks (RRULE)
-- Background sync: a switch for it and its interval in Settings, and the
-  same on Linux and macOS
-- Quick-add syntax shared by app and CLI (`#tag`, `^list`, `!high`,
-  `tomorrow`)
+- Reminders: syncing dismissals between devices, a choice of time for
+  tasks with no time, and Linux reminders while Geas is closed
+- Syncing on Linux and macOS while Geas is closed (a systemd timer or
+  launch agent). Today they sync on a timer only while it's open
 - Calendar view
 - Sign in through a registered Geas GitHub App (device flow): no token to
   copy, but an app to register and tokens to refresh every 8 hours
 - Habits and Pomodoro
-- Search and saved filters
 - Folders that group lists
 - Manual ordering within a list
 - OAuth device flow instead of a pasted token

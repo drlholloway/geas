@@ -27,6 +27,55 @@ void main() {
     expect(app.github.commits.last, 'sync(testbox): 1 added');
   });
 
+  testWidgets('the open app syncs on its own every half hour', (tester) async {
+    await app.seed();
+    await app.pump(tester);
+    final task = Task.create(title: 'From the phone', now: now);
+    app.github.push({taskPath(task, now): utf8.encode(task.encode())});
+    await tester.pump(const Duration(minutes: 29));
+    await tester.pumpAndSettle();
+    expect(find.text('From the phone'), findsNothing);
+    await tester.pump(const Duration(minutes: 1));
+    await tester.pumpAndSettle();
+    expect(find.text('From the phone'), findsOneWidget);
+  });
+
+  testWidgets('Settings turns syncing on its own off, and sets how often', (
+    tester,
+  ) async {
+    final scheduler = app.backgroundScheduler = FakeBackgroundScheduler();
+    await app.seed();
+    await app.pump(tester);
+    expect(scheduler.applied, [(true, const Duration(minutes: 30))]);
+
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('even when Geas is closed'), findsOneWidget);
+    await tester.tap(find.text('Every 30 minutes'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Every 2 hours').last);
+    await tester.pumpAndSettle();
+    expect(scheduler.applied.last, (true, const Duration(hours: 2)));
+    expect(app.config.config!.syncMinutes, 120);
+    expect(app.config.config!.toJson()['sync_minutes'], 120);
+
+    await tester.tap(find.text('Sync on its own'));
+    await tester.pumpAndSettle();
+    expect(scheduler.applied.last.$1, isFalse);
+    expect(app.config.config!.backgroundSync, isFalse);
+    expect(find.text('How often'), findsNothing);
+
+    // Off: nothing is pulled until asked.
+    final task = Task.create(title: 'From the phone', now: now);
+    app.github.push({taskPath(task, now): utf8.encode(task.encode())});
+    await tester.pump(const Duration(hours: 5));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Inbox'));
+    await tester.pumpAndSettle();
+    expect(app.remoteTitles(), contains('From the phone'));
+    expect(find.text('From the phone'), findsNothing);
+  });
+
   testWidgets('Sync now pulls changes from other devices', (tester) async {
     await app.seed();
     await app.pump(tester);

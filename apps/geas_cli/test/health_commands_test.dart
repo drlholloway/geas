@@ -76,6 +76,27 @@ void main() {
         contains('Next due 2026-11-15 12:00.'));
   });
 
+  test('doses are logged and totaled in the tracker\'s unit', () async {
+    await run(['health', 'add', 'Insulin', '--unit', 'u', '--dose', '12']);
+    await run(['log', 'insulin', '--at', '8am']);
+    expect(
+      await run(['log', 'insulin', '--amount', '7.5', '--note', 'snack']),
+      contains('19.5 u today, 19.5 u a day this week'),
+    );
+    final entries = remote('insulin').entries;
+    expect(entries.map((e) => e.amount), [12, 7.5]);
+    expect(entries.last.note, 'snack');
+    final shown = await run(['health', 'show', 'insulin']);
+    expect(shown, contains('2026-11-09 12:00  7.5 u  after 4 h  snack'));
+    expect(shown, contains('2026-11-09 08:00  12 u\n'));
+
+    await run(['health', 'add', 'Metformin']);
+    expect(await geas(['log', 'met', '--amount', '500']), 1);
+    expect('${geas.err}', contains('has no unit'));
+    expect(await geas(['health', 'add', 'X', '--dose', '5']), 64);
+    expect(await geas(['log', 'insulin', '--amount', 'lots']), 1);
+  });
+
   test('undo removes the latest time', () async {
     await run(['health', 'add', 'Metformin']);
     await run(['log', 'met', '--at', '8am']);

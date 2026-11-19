@@ -37,12 +37,16 @@ enum TrackerKind {
 }
 
 /// One logged time in a tracker: a body line such as
-/// `- 2026-11-15T08:02:11-06:00 with dinner`.
+/// `- 2026-11-15T08:02:11-06:00 500mg with dinner`.
 class TrackerEntry {
-  const TrackerEntry(this.at, {this.note, this.line = -1});
+  const TrackerEntry(this.at, {this.amount, this.note, this.line = -1});
 
   /// When, in UTC.
   final DateTime at;
+
+  /// How much, in the tracker's unit: the number in a first word such as
+  /// `500mg`. Null if the tracker has no unit or the entry no such word.
+  final double? amount;
   final String? note;
 
   /// The index of its line in the tracker's body.
@@ -50,10 +54,13 @@ class TrackerEntry {
 
   @override
   bool operator ==(Object other) =>
-      other is TrackerEntry && other.at == at && other.note == note;
+      other is TrackerEntry &&
+      other.at == at &&
+      other.amount == amount &&
+      other.note == note;
 
   @override
-  int get hashCode => Object.hash(at, note);
+  int get hashCode => Object.hash(at, amount, note);
 
   @override
   String toString() => 'TrackerEntry($at${note == null ? '' : ', $note'})';
@@ -68,6 +75,8 @@ class Tracker {
     required this.name,
     this.kind = TrackerKind.med,
     this.every,
+    this.unit,
+    this.dose,
     this.order = 0,
     this.body = '',
     this.frontmatter,
@@ -95,11 +104,29 @@ class Tracker {
           '"order" in a tracker must be a whole number.');
     }
     final every = optionalString(map, 'every', what);
+    var unit = optionalString(map, 'unit', what)?.trim();
+    if (unit != null && unit.contains(RegExp(r'\s'))) {
+      throw FormatException(
+          '"unit" in a tracker must be one word, got "$unit".');
+    }
+    // `dose: 500`, or with its unit as people write it: `dose: 500mg`.
+    final doseText = optionalString(map, 'dose', what)?.trim();
+    final doseMatch = doseText == null
+        ? null
+        : RegExp(r'^(\d+(?:\.\d+)?)\s*(\S+)?$').firstMatch(doseText);
+    final dose = doseMatch == null ? null : double.parse(doseMatch[1]!);
+    if (doseText != null && (dose == null || dose <= 0)) {
+      throw FormatException(
+          '"dose" in a tracker must be a number, got "$doseText".');
+    }
+    if (unit == null || unit.isEmpty) unit = doseMatch?[2];
     return Tracker(
       id: id,
       name: requireString(map, 'name', what),
       kind: TrackerKind.parse(optionalString(map, 'kind', what)),
       every: every == null ? null : parseInterval(every),
+      unit: unit == null || unit.isEmpty ? null : unit,
+      dose: dose,
       order: order as int? ?? 0,
       body: parts.body,
       frontmatter: parts.frontmatter,
@@ -115,6 +142,14 @@ class Tracker {
   /// next one is due this long after the last.
   final Duration? every;
 
+  /// What doses are measured in (`unit: mg`), or null if they aren't. One
+  /// word; each entry's amount is written with it, as in `500mg`.
+  final String? unit;
+
+  /// The usual amount (`dose: 500`), logged unless another is given. Only
+  /// used with a [unit].
+  final double? dose;
+
   /// Trackers sort by [order], then name.
   final int order;
 
@@ -126,11 +161,18 @@ class Tracker {
   final String? frontmatter;
 
   /// Every logged time, oldest first.
-  late final List<TrackerEntry> entries = _parseEntries(body);
+  late final List<TrackerEntry> entries = _parseEntries(body, unit);
 
-  /// With [at] logged, to the second, in its place among the others.
-  Tracker log(DateTime at, {String? note}) {
-    final lines = _lines(body)..add(entryLine(at, note: note));
+  /// With [at] logged, to the second, in its place among the others. With
+  /// a [unit], the entry carries [amount], or the usual [dose].
+  Tracker log(DateTime at, {double? amount, String? note}) {
+    final lines = _lines(body)
+      ..add(entryLine(
+        at,
+        amount: unit == null ? null : amount ?? dose,
+        unit: unit,
+        note: note,
+      ));
     return _withBody(_join(sortEntryLines(lines)));
   }
 
@@ -162,6 +204,12 @@ class Tracker {
         'name': name,
         'kind': kind.yaml,
         'every': every == null ? null : formatInterval(every!),
+        'unit': unit,
+        'dose': switch (dose) {
+          null => null,
+          final d when d == d.roundToDouble() => d.toInt(),
+          final d => d,
+        },
         'order': order,
       };
 
@@ -170,17 +218,21 @@ class Tracker {
         name: name,
         kind: kind,
         every: every,
+        unit: unit,
+        dose: dose,
         order: order,
         body: body,
         frontmatter: frontmatter,
       );
 
-  /// A copy with the given fields replaced. Pass null for [every] to clear
-  /// it.
+  /// A copy with the given fields replaced. Pass null for [every], [unit]
+  /// or [dose] to clear them.
   Tracker copyWith({
     String? name,
     TrackerKind? kind,
     Object? every = _keep,
+    Object? unit = _keep,
+    Object? dose = _keep,
     int? order,
   }) =>
       Tracker(
@@ -188,6 +240,8 @@ class Tracker {
         name: name ?? this.name,
         kind: kind ?? this.kind,
         every: identical(every, _keep) ? this.every : every as Duration?,
+        unit: identical(unit, _keep) ? this.unit : unit as String?,
+        dose: identical(dose, _keep) ? this.dose : dose as double?,
         order: order ?? this.order,
         body: body,
         frontmatter: frontmatter,
@@ -201,11 +255,14 @@ class Tracker {
       other.name == name &&
       other.kind == kind &&
       other.every == every &&
+      other.unit == unit &&
+      other.dose == dose &&
       other.order == order &&
       other.body == body;
 
   @override
-  int get hashCode => Object.hash(id, name, kind, every, order, body);
+  int get hashCode =>
+      Object.hash(id, name, kind, every, unit, dose, order, body);
 
   @override
   String toString() => 'Tracker($id, $name)';
@@ -250,6 +307,8 @@ Tracker newTracker(
   Iterable<Tracker> trackers, {
   TrackerKind kind = TrackerKind.med,
   Duration? every,
+  String? unit,
+  double? dose,
 }) {
   name = name.trim();
   if (trackers.any((t) => t.name.toLowerCase() == name.toLowerCase())) {
@@ -267,7 +326,15 @@ Tracker newTracker(
     id = '$slug-$n';
   }
   final order = trackers.fold(0, (o, t) => t.order > o ? t.order : o) + 1;
-  return Tracker(id: id, name: name, kind: kind, every: every, order: order);
+  return Tracker(
+    id: id,
+    name: name,
+    kind: kind,
+    every: every,
+    unit: unit,
+    dose: dose,
+    order: order,
+  );
 }
 
 /// Parses an interval such as `12h`, `10d` or `2w`, throwing
@@ -293,15 +360,24 @@ String formatInterval(Duration interval) =>
 
 /// The body line for an entry at [at]: local time with its offset, to the
 /// second, then the note.
-String entryLine(DateTime at, {String? note}) {
+String entryLine(DateTime at, {double? amount, String? unit, String? note}) {
   final t = at.toLocal();
   final offset = t.timeZoneOffset;
   final minutes = offset.inMinutes.abs();
   final zone = '${offset.isNegative ? '-' : '+'}'
       '${_two(minutes ~/ 60)}:${_two(minutes % 60)}';
-  final text = note?.replaceAll(RegExp(r'\s+'), ' ').trim() ?? '';
+  final text = [
+    if (amount != null && unit != null) '${formatAmount(amount)}$unit',
+    ...?note?.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty),
+  ].join(' ');
   return '- ${LocalDate.of(t)}T${_two(t.hour)}:${_two(t.minute)}:'
       '${_two(t.second)}$zone${text.isEmpty ? '' : ' $text'}';
+}
+
+/// [amount] as written: no trailing zeros, at most three decimals.
+String formatAmount(double amount) {
+  final text = amount.toStringAsFixed(3);
+  return text.contains('.') ? text.replaceFirst(RegExp(r'\.?0+$'), '') : text;
 }
 
 /// [lines] with the entry lines in time order. Other lines stay where they
@@ -341,16 +417,26 @@ String mergeTrackerBodies(String base, String local, String remote) {
   ]));
 }
 
-List<TrackerEntry> _parseEntries(String body) {
+List<TrackerEntry> _parseEntries(String body, String? unit) {
+  final amountPattern = unit == null
+      ? null
+      : RegExp('^(\\d+(?:\\.\\d+)?)${RegExp.escape(unit)}(?:\\s+|\$)',
+          caseSensitive: false);
   final lines = _lines(body);
   final entries = <TrackerEntry>[];
   for (var i = 0; i < lines.length; i++) {
     final m = _entryPattern.firstMatch(lines[i]);
     final at = m == null ? null : DateTime.tryParse(m[1]!);
     if (at == null) continue;
-    final note = m![2]?.trim() ?? '';
-    entries.add(
-        TrackerEntry(at.toUtc(), note: note.isEmpty ? null : note, line: i));
+    var note = m![2]?.trim() ?? '';
+    final amount = amountPattern?.firstMatch(note);
+    if (amount != null) note = note.substring(amount.end).trim();
+    entries.add(TrackerEntry(
+      at.toUtc(),
+      amount: amount == null ? null : double.parse(amount[1]!),
+      note: note.isEmpty ? null : note,
+      line: i,
+    ));
   }
   // Stable, so entries at the same moment keep their file order.
   final indexed = entries.indexed.toList()

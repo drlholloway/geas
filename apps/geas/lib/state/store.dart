@@ -17,10 +17,12 @@ class TaskStore {
     required this.tasks,
     required Iterable<TaskList> lists,
     Iterable<Tracker> trackers = const [],
+    Iterable<SavedFilter> filters = const [],
     this.loaded = true,
     this.warnDays = defaultWarnDays,
   }) : lists = withInbox(lists),
-       trackers = sortTrackers(trackers);
+       trackers = sortTrackers(trackers),
+       filters = sortFilters(filters);
 
   /// Before the local copy has been read.
   TaskStore.loading() : this(tasks: const [], lists: const [], loaded: false);
@@ -33,6 +35,9 @@ class TaskStore {
   /// What the Health view logs (medications, sensors), in display order.
   final List<Tracker> trackers;
 
+  /// Saved searches, in display order.
+  final List<SavedFilter> filters;
+
   /// False until the local copy has been read.
   final bool loaded;
 
@@ -43,13 +48,22 @@ class TaskStore {
     List<Task>? tasks,
     Iterable<TaskList>? lists,
     Iterable<Tracker>? trackers,
+    Iterable<SavedFilter>? filters,
   }) => TaskStore(
     tasks: tasks ?? this.tasks,
     lists: lists ?? this.lists,
     trackers: trackers ?? this.trackers,
+    filters: filters ?? this.filters,
     loaded: loaded,
     warnDays: warnDays,
   );
+
+  SavedFilter? filterById(String id) {
+    for (final filter in filters) {
+      if (filter.id == id) return filter;
+    }
+    return null;
+  }
 
   Tracker? trackerById(String id) {
     for (final tracker in trackers) {
@@ -92,6 +106,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     String list = inboxId,
     List<String> tags = const [],
     Due? due,
+    Priority priority = Priority.none,
     Order? order,
   }) {
     final task = Task.create(
@@ -100,13 +115,16 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
       list: list,
       tags: tags,
       due: due,
+      priority: priority,
     ).copyWith(order: order);
     _save(task);
     return task;
   }
 
+  /// Finishes or reopens [task]. Finishing a repeating task also adds the
+  /// next one.
   void setDone(Task task, {required bool done}) =>
-      _save(done ? task.complete(_now) : task.reopen(_now));
+      _saveAll(done ? completeTask(task, _now) : [task.reopen(_now)]);
 
   void setChecklistItem(Task task, int line, {required bool done}) =>
       _save(task.setChecklistItem(line, done: done, now: _now));
@@ -199,6 +217,34 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     });
   }
 
+  /// Adds [filter], or saves changes to it.
+  void saveFilter(SavedFilter filter) {
+    state = state.copyWith(
+      filters: [
+        for (final f in state.filters)
+          if (f.id != filter.id) f,
+        filter,
+      ],
+    );
+    _enqueue(() async {
+      await _workspace?.saveFilter(filter);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  void deleteFilter(String id) {
+    state = state.copyWith(
+      filters: [
+        for (final f in state.filters)
+          if (f.id != id) f,
+      ],
+    );
+    _enqueue(() async {
+      await _workspace?.deleteFilter(id);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
   /// Adds [tracker], or saves changes to it.
   void saveTracker(Tracker tracker) {
     state = state.copyWith(
@@ -244,11 +290,23 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
   }
 
   /// Logs the tracker with [id] at [at], or now, and returns the entry.
-  TrackerEntry logTracker(String id, {DateTime? at, String? note}) {
+  /// With [amount], that much instead of the tracker's usual dose.
+  TrackerEntry logTracker(
+    String id, {
+    DateTime? at,
+    double? amount,
+    String? note,
+  }) {
     final time = at ?? _now;
-    editTracker(id, (t) => t.log(time, note: note));
-    final logged = Tracker(id: id, name: id).log(time, note: note);
-    return logged.entries.single;
+    editTracker(id, (t) => t.log(time, amount: amount, note: note));
+    // The entry as that log wrote it, to find it again for an undo.
+    final tracker = state.trackerById(id);
+    return Tracker(
+      id: id,
+      name: id,
+      unit: tracker?.unit,
+      dose: tracker?.dose,
+    ).log(time, amount: amount, note: note).entries.single;
   }
 
   /// Removes the tracker with [id] and its log.
@@ -333,6 +391,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
           tasks: workspace.tasks.toList(),
           lists: workspace.lists,
           trackers: workspace.trackers,
+          filters: workspace.filters,
           warnDays: workspace.warnDays,
         );
       });

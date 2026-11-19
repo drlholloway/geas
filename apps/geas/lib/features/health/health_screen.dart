@@ -29,12 +29,19 @@ List<String> trackerLines(Tracker tracker, DateTime now) {
           if (wearDay(tracker, now) case final day?) 'D${day.substring(1)}',
           if (gap != null) 'lasts ${spanLabel(gap)} on average',
         ]
-      : [
-          '${stats.today} today',
-          '${oneDecimal(stats.perDayWeek!)} a day this week',
-          if (stats.count > stats.week)
-            '${oneDecimal(stats.perDayMonth!)} a day over 30 days',
-        ];
+      : switch (tracker.unit) {
+          // Measured: how much, not how many times.
+          final unit? => [
+            '${formatAmount(stats.amountToday!)} $unit today',
+            '${oneDecimal(stats.amountPerDayWeek!)} $unit a day this week',
+          ],
+          null => [
+            '${stats.today} today',
+            '${oneDecimal(stats.perDayWeek!)} a day this week',
+            if (stats.count > stats.week)
+              '${oneDecimal(stats.perDayMonth!)} a day over 30 days',
+          ],
+        };
   return [
     '${tracker.kind.done} ${spanLabel(stats.sinceLast!)} ago  ·  '
         '${whenLabel(last, now)}',
@@ -265,7 +272,8 @@ class _TrackerCard extends ConsumerWidget {
   }
 }
 
-/// How many times [tracker] was logged on each of the last [days] days: one
+/// How many times [tracker] was logged on each of the last [days] days, or
+/// how much if it has a unit: one
 /// thin bar a day, today on the right. Hover or long-press a bar for its
 /// day and count.
 class DailyBars extends StatelessWidget {
@@ -286,8 +294,15 @@ class DailyBars extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final counts = dailyCounts(tracker, now, days: days);
-    final most = counts.fold(1, (m, c) => c > m ? c : m);
+    // How much each day for a tracker with a unit, else how many times.
+    final unit = tracker.unit;
+    final counts = unit == null
+        ? [for (final c in dailyCounts(tracker, now, days: days)) c.toDouble()]
+        : dailyAmounts(tracker, now, days: days);
+    final top = counts.fold(0.0, (m, c) => c > m ? c : m);
+    final most = top == 0 ? 1.0 : top;
+    String amount(double value) =>
+        unit == null ? formatAmount(value) : '${formatAmount(value)} $unit';
     final today = LocalDate.of(now);
     final label = theme.textTheme.labelSmall!.copyWith(
       color: colors.onSurfaceVariant,
@@ -306,7 +321,7 @@ class DailyBars extends StatelessWidget {
                   child: Tooltip(
                     message:
                         '${dayLabel(today.addDays(i - days + 1), now, short: true)}'
-                        ': ${counts[i]}',
+                        ': ${amount(counts[i])}',
                     waitDuration: Duration.zero,
                     child: Container(
                       // The whole column is the hover target, not just the bar.
@@ -341,7 +356,7 @@ class DailyBars extends StatelessWidget {
               dayLabel(today.addDays(1 - days), now, short: true),
               style: label,
             ),
-            Text('most in a day: $most', style: label),
+            Text('most in a day: ${amount(top)}', style: label),
             Text('Today', style: label),
           ],
         ),

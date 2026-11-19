@@ -1,8 +1,12 @@
+import 'dart:isolate';
+import 'dart:ui';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geas_core/geas_core.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../state/background_sync.dart';
 import '../../state/conflicts.dart';
 import '../../state/environment.dart';
 import '../../state/session.dart';
@@ -144,10 +148,21 @@ class SyncDriver extends ConsumerStatefulWidget {
 class _SyncDriverState extends ConsumerState<SyncDriver> {
   late final AppLifecycleListener _lifecycle;
 
+  /// Where a background sync that comes due while the app is running asks
+  /// it to sync instead.
+  final _asked = ReceivePort();
+
   @override
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(onResume: _sync);
+    _asked.listen((message) {
+      if (message is! SendPort) return;
+      message.send(mounted);
+      _sync();
+    });
+    IsolateNameServer.removePortNameMapping(syncPortName);
+    IsolateNameServer.registerPortWithName(_asked.sendPort, syncPortName);
     WidgetsBinding.instance.addPostFrameCallback((_) => _sync());
   }
 
@@ -158,6 +173,8 @@ class _SyncDriverState extends ConsumerState<SyncDriver> {
   @override
   void dispose() {
     _lifecycle.dispose();
+    IsolateNameServer.removePortNameMapping(syncPortName);
+    _asked.close();
     super.dispose();
   }
 

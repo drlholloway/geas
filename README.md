@@ -19,7 +19,8 @@ are plain Markdown files in a repo you own.
   Drag a task between quadrants to change its priority. Tasks due soon are
   bold amber; overdue ones are red.
 - **A home-screen widget on Android** with the four quadrants: tick tasks
-  off without opening the app.
+  off without opening the app. Android syncs in the background, so the
+  widget keeps up with your other devices.
 - **Order and package tracking:** vendor, order number and status on a task,
   packages with the carrier worked out from the tracking number and a link
   to its tracking page, and packages arriving today in Today.

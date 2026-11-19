@@ -9,6 +9,7 @@ import 'app/theme.dart';
 import 'features/setup/setup_screen.dart';
 import 'features/shell/home_widget_driver.dart';
 import 'features/shell/sync_status.dart';
+import 'state/background_sync.dart';
 import 'state/environment.dart';
 import 'state/home_widget.dart';
 import 'state/session.dart';
@@ -19,6 +20,8 @@ Future<void> main() async {
   if (Platform.isAndroid) {
     // Checkboxes on the home-screen widget run this in the background.
     await HomeWidget.registerInteractivityCallback(homeWidgetCallback);
+    // Syncs every so often while the app is closed.
+    await scheduleBackgroundSync();
   }
   runApp(
     ProviderScope(

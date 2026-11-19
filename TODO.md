@@ -111,12 +111,17 @@ name: CGM sensor
 kind: sensor                   # med (the default) | sensor
 every: 10d                     # optional: 12h, 10d, 2w; next is due this
 order: 2                       # long after the last
+unit: mg                       # optional: what doses are measured in
+dose: 500                      # optional: the usual amount, in that unit
 ---
 - 2026-10-26T09:05:00-05:00
 - 2026-11-04T09:05:00-06:00 the old one fell off early
+- 2026-11-15T08:02:11-06:00 500mg with dinner
 ```
 
-Each entry is a local time with its offset, then an optional note. Seconds
+Each entry is a local time with its offset, then an optional note. With a
+`unit`, a first word that is a number followed by that unit (`500mg`) is
+the entry's amount. Seconds
 and the offset may be left out when writing one by hand. Lines that aren't
 entries are kept as notes.
 
@@ -442,9 +447,18 @@ how often.
       inexact (within a few minutes) to avoid the exact-alarm permission.
       Linux has no scheduler, so there they show only while Geas is open
 
-## Later
+- [x] Health: dose amounts. A tracker can have a `unit` and a usual
+      `dose`; each entry then carries an amount (`500mg`), the usual one
+      unless another is given. Cards, the chart and `geas health` total the
+      amount per day in place of counting times; "A different amount" in
+      the app and `geas log --amount`
+- [x] Health on the Android home screen: a second widget (`HealthWidget`,
+      Glance) with each tracker's last time and next due, by the clock so
+      they don't go stale, overdue in amber, and a Take or Replace button
+      that logs now: handed to the app if it's running, else logged and
+      synced in a background isolate (`logFromWidget`)
 
-- Health: doses with amounts, and the Android widget
+## Later
 
 - Reminders: syncing dismissals between devices, a choice of time for
   tasks with no time, and Linux reminders while Geas is closed

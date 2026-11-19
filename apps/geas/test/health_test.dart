@@ -183,6 +183,50 @@ void main() {
     expect(remote('metformin')!.entries, isNotEmpty);
   });
 
+  testWidgets('a medication with a unit totals its doses', (tester) async {
+    await openHealth(tester);
+    await tester.tap(find.byTooltip('Track something'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Insulin');
+    await tester.enterText(find.widgetWithText(TextField, 'Usual dose'), '12');
+    await tester.pump();
+    await tester.tap(find.text('Add'));
+    await tester.pump();
+    expect(find.text('Give the unit too, like mg'), findsOneWidget);
+    await tester.enterText(find.widgetWithText(TextField, 'Unit'), 'u');
+    await tester.tap(find.text('Add'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Take').last);
+    await tester.pump();
+    expect(find.text('12 u today  ·  12 u a day this week'), findsOneWidget);
+    expect(find.byTooltip('Today: 12 u'), findsOneWidget);
+
+    await tester.tap(find.text('Insulin'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('12 u each'), findsOneWidget);
+    await tester.tap(find.text('A different amount'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Amount'), '7.5');
+    await tester.tap(find.text('Log'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('19.5 u today'), findsOneWidget);
+    expect(find.textContaining('7.5 u'), findsWidgets);
+
+    await sync(tester);
+    final tracker = remote('insulin')!;
+    expect((tracker.unit, tracker.dose), ('u', 12));
+    expect(tracker.entries.map((e) => e.amount), [12, 7.5]);
+
+    // Undo finds the entry by its amount too.
+    await tester.tap(find.text('Take now'));
+    await tester.pump();
+    expect(find.textContaining('31.5 u today'), findsOneWidget);
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('19.5 u today'), findsOneWidget);
+  });
+
   testWidgets('stop tracking deletes the log everywhere', (tester) async {
     await openHealth(tester);
     await tester.tap(find.text('Metformin'));

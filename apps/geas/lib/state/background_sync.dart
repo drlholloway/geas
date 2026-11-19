@@ -112,6 +112,7 @@ Future<BackgroundSync> backgroundSync(
     now: clock(),
     warnDays: workspace.warnDays,
   );
+  await showHealth(env.homeWidget, workspace.trackers, now: clock());
   // What other devices changed moves this one's reminders too.
   await scheduleReminders(
     env.reminders,

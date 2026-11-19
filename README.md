@@ -14,7 +14,8 @@ are plain Markdown files in a repo you own.
 - **Lists, tags, due dates with optional times, priorities, checklists and
   notes.** Inbox, Today and Next 7 days views.
 - **Health:** log each medication dose and CGM sensor change, and see how
-  often: doses a day, days of wear, and when the next is due.
+  often: doses or amounts a day, days of wear, and when the next is due.
+  On Android, a home-screen widget logs one with a tap.
 - **Eisenhower matrix:** Do, Schedule, Delegate and Drop, one per priority.
   Drag a task between quadrants to change its priority. Tasks due soon are
   bold amber; overdue ones are red.

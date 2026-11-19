@@ -16,6 +16,8 @@ class TrackerStats {
     required this.perDayMonth,
     required this.averageGap,
     required this.nextDue,
+    required this.amountToday,
+    required this.amountPerDayWeek,
   });
 
   /// The numbers for [tracker] at [now]. Days are the device's.
@@ -41,6 +43,11 @@ class TrackerStats {
       final n = from < 0 ? entries.length - 1 : gaps;
       averageGap = last!.difference(start) ~/ n;
     }
+    double amountWithin(int days) => entries.where((e) {
+          final age = _daysBetween(LocalDate.of(e.at.toLocal()), today);
+          return age >= 0 && age < days;
+        }).fold(0, (sum, e) => sum + (e.amount ?? 0));
+    final measured = tracker.unit != null;
     final every = tracker.every;
     return TrackerStats._(
       count: entries.length,
@@ -54,6 +61,10 @@ class TrackerStats {
       perDayMonth: perDay(30),
       averageGap: averageGap,
       nextDue: last == null || every == null ? null : last.add(every),
+      amountToday: measured ? amountWithin(1) : null,
+      amountPerDayWeek: !measured || tracked < 1
+          ? null
+          : amountWithin(7) / (tracked < 7 ? tracked : 7),
     );
   }
 
@@ -79,6 +90,10 @@ class TrackerStats {
 
   /// When the next one is due: [last] plus the tracker's `every`.
   final DateTime? nextDue;
+
+  /// For a tracker with a unit: how much was logged today, and how much a
+  /// day over the same days as [perDayWeek]. Null without a unit.
+  final double? amountToday, amountPerDayWeek;
 }
 
 /// Times [tracker] was logged on each of the [days] days ending today,
@@ -91,6 +106,18 @@ List<int> dailyCounts(Tracker tracker, DateTime now, {int days = 14}) {
     if (age >= 0 && age < days) counts[days - 1 - age]++;
   }
   return counts;
+}
+
+/// How much of [tracker] was logged on each of the [days] days ending
+/// today, oldest first, in its unit.
+List<double> dailyAmounts(Tracker tracker, DateTime now, {int days = 14}) {
+  final today = LocalDate.of(now.toLocal());
+  final amounts = List.filled(days, 0.0);
+  for (final entry in tracker.entries) {
+    final age = _daysBetween(LocalDate.of(entry.at.toLocal()), today);
+    if (age >= 0 && age < days) amounts[days - 1 - age] += entry.amount ?? 0;
+  }
+  return amounts;
 }
 
 /// Each entry of [tracker], newest first, with how long after the one

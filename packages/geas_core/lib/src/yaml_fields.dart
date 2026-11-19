@@ -5,7 +5,7 @@ import 'package:yaml/yaml.dart';
 import 'package:yaml_edit/yaml_edit.dart';
 
 // Helpers for the YAML maps in task frontmatter and list files. Field values
-// are already encoded: a String, an int, a List<String>, or null.
+// are already encoded: a String, an int, a double, a List<String>, or null.
 
 const _equality = DeepCollectionEquality();
 
@@ -70,7 +70,7 @@ String? optionalString(YamlMap map, String key, String what) {
 
 String _value(Object? value) => switch (value) {
       null => 'null',
-      int() => '$value',
+      int() || double() => '$value',
       String() => _scalar(value, inFlow: false),
       List() => '[${value.map((v) => _scalar('$v', inFlow: true)).join(', ')}]',
       _ => throw ArgumentError.value(value, 'value', 'not encodable'),

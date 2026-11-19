@@ -25,6 +25,14 @@ GitHub Release notes.
   when a task is due (at 9:00 if it has no time) and when a medication or
   sensor is due again. It's set per device. On Android and macOS they
   arrive with Geas closed; on Linux only while it's open.
+- **Dose amounts in Health:** give a medication a unit and a usual dose
+  ("500 mg") and each time you log it carries an amount. The card, the
+  chart and `geas health` then show how much per day, not how many
+  times. Log a different amount with **A different amount** or
+  `geas log --amount`.
+- **A Health widget on Android:** your medications and sensors on the
+  home screen, with when each was last logged and is next due, and a
+  button to log one without opening the app.
 - **Background sync on Android:** Geas syncs about every half hour while
   it's closed, whenever there's a network, so the home-screen widget shows
   changes from your other devices without opening the app. Android may

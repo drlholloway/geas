@@ -9,11 +9,13 @@ Future<void> addTracker(BuildContext context, WidgetRef ref) async {
   final created = await showDialog<Tracker>(
     context: context,
     builder: (context) => _TrackerDialog(
-      onSave: (name, kind, every) => newTracker(
+      onSave: (name, kind, every, unit, dose) => newTracker(
         name,
         ref.read(taskStoreProvider).trackers,
         kind: kind,
         every: every,
+        unit: unit,
+        dose: dose,
       ),
     ),
   );
@@ -32,7 +34,7 @@ Future<void> editTracker(
     context: context,
     builder: (context) => _TrackerDialog(
       tracker: tracker,
-      onSave: (name, kind, every) {
+      onSave: (name, kind, every, unit, dose) {
         final others = ref
             .read(taskStoreProvider)
             .trackers
@@ -40,7 +42,13 @@ Future<void> editTracker(
         if (others.any((t) => t.name.toLowerCase() == name.toLowerCase())) {
           throw FormatException('"$name" is already tracked.');
         }
-        return tracker.copyWith(name: name, kind: kind, every: every);
+        return tracker.copyWith(
+          name: name,
+          kind: kind,
+          every: every,
+          unit: unit,
+          dose: dose,
+        );
       },
     ),
   );
@@ -53,6 +61,8 @@ Future<void> editTracker(
           name: edited.name,
           kind: edited.kind,
           every: edited.every,
+          unit: edited.unit,
+          dose: edited.dose,
         ),
       );
 }
@@ -64,7 +74,14 @@ class _TrackerDialog extends StatefulWidget {
   final Tracker? tracker;
 
   /// Makes the tracker to save, throwing [FormatException] if it can't be.
-  final Tracker Function(String name, TrackerKind kind, Duration? every) onSave;
+  final Tracker Function(
+    String name,
+    TrackerKind kind,
+    Duration? every,
+    String? unit,
+    double? dose,
+  )
+  onSave;
 
   @override
   State<_TrackerDialog> createState() => _TrackerDialogState();
@@ -78,20 +95,31 @@ class _TrackerDialogState extends State<_TrackerDialog> {
       final every => formatInterval(every),
     },
   );
+  late final _unit = TextEditingController(text: widget.tracker?.unit);
+  late final _dose = TextEditingController(
+    text: switch (widget.tracker?.dose) {
+      null => '',
+      final dose => formatAmount(dose),
+    },
+  );
   late var _kind = widget.tracker?.kind ?? TrackerKind.med;
-  String? _nameError, _everyError;
+  String? _nameError, _everyError, _doseError;
 
   @override
   void initState() {
     super.initState();
     _name.addListener(() => setState(() => _nameError = null));
     _every.addListener(() => setState(() => _everyError = null));
+    _dose.addListener(() => setState(() => _doseError = null));
+    _unit.addListener(() => setState(() => _doseError = null));
   }
 
   @override
   void dispose() {
     _name.dispose();
     _every.dispose();
+    _unit.dispose();
+    _dose.dispose();
     super.dispose();
   }
 
@@ -107,8 +135,26 @@ class _TrackerDialogState extends State<_TrackerDialog> {
         return;
       }
     }
+    final unit = _unit.text.trim();
+    final doseText = _dose.text.trim();
+    final dose = double.tryParse(doseText);
+    if (unit.contains(RegExp(r'\s'))) {
+      setState(() => _doseError = 'The unit is one word, like mg');
+      return;
+    }
+    if (doseText.isNotEmpty && (dose == null || dose <= 0 || unit.isEmpty)) {
+      setState(
+        () => _doseError = unit.isEmpty
+            ? 'Give the unit too, like mg'
+            : 'A number, like 500',
+      );
+      return;
+    }
     try {
-      Navigator.pop(context, widget.onSave(name, _kind, every));
+      Navigator.pop(
+        context,
+        widget.onSave(name, _kind, every, unit.isEmpty ? null : unit, dose),
+      );
     } on FormatException catch (e) {
       setState(() => _nameError = e.message);
     }
@@ -172,6 +218,38 @@ class _TrackerDialogState extends State<_TrackerDialog> {
               ),
               onSubmitted: (_) => _save(),
             ),
+            if (!sensor)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextField(
+                      controller: _dose,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Usual dose',
+                        hintText: '500; optional',
+                        errorText: _doseError,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: _unit,
+                      autocorrect: false,
+                      decoration: const InputDecoration(
+                        labelText: 'Unit',
+                        hintText: 'mg',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

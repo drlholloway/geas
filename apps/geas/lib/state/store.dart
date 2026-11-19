@@ -290,11 +290,23 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
   }
 
   /// Logs the tracker with [id] at [at], or now, and returns the entry.
-  TrackerEntry logTracker(String id, {DateTime? at, String? note}) {
+  /// With [amount], that much instead of the tracker's usual dose.
+  TrackerEntry logTracker(
+    String id, {
+    DateTime? at,
+    double? amount,
+    String? note,
+  }) {
     final time = at ?? _now;
-    editTracker(id, (t) => t.log(time, note: note));
-    final logged = Tracker(id: id, name: id).log(time, note: note);
-    return logged.entries.single;
+    editTracker(id, (t) => t.log(time, amount: amount, note: note));
+    // The entry as that log wrote it, to find it again for an undo.
+    final tracker = state.trackerById(id);
+    return Tracker(
+      id: id,
+      name: id,
+      unit: tracker?.unit,
+      dose: tracker?.dose,
+    ).log(time, amount: amount, note: note).entries.single;
   }
 
   /// Removes the tracker with [id] and its log.

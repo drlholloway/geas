@@ -38,6 +38,9 @@ String trackerSummary(Tracker tracker, DateTime now) {
     if (tracker.kind == TrackerKind.sensor) ...[
       if (wearDay(tracker, now) case final day?) day,
       if (gap != null) 'lasts ${spanLabel(gap)} on average',
+    ] else if (tracker.unit case final unit?) ...[
+      '${formatAmount(stats.amountToday!)} $unit today',
+      '${oneDecimal(stats.amountPerDayWeek!)} $unit a day this week',
     ] else ...[
       '${stats.today} today',
       '${oneDecimal(stats.perDayWeek!)} a day this week',
@@ -53,6 +56,10 @@ class HealthCommand extends GeasCommand {
               'replaced every several days.')
       ..addOption('every',
           help: 'For add: how often it\'s meant to happen, like 12h or 10d.')
+      ..addOption('unit',
+          help: 'For add: what doses are measured in, like mg or units.')
+      ..addOption('dose',
+          help: 'For add: the usual amount, in that unit, like 500.')
       ..addOption('number',
           abbr: 'n',
           help: 'For show: how many times to list.',
@@ -71,6 +78,7 @@ class HealthCommand extends GeasCommand {
   String get invocation => 'geas health\n'
       '       geas health show <name> [-n <count>]\n'
       '       geas health add <name> [--kind med|sensor] [--every <interval>]\n'
+      '                              [--unit <unit> [--dose <amount>]]\n'
       '       geas health move <name> <position>\n'
       '       geas health rm <name>';
 
@@ -144,6 +152,8 @@ class HealthCommand extends GeasCommand {
     for (final (:entry, :gap) in entryGaps(tracker).take(count)) {
       out.writeln([
         '  ${formatTime(entry.at)}',
+        if (entry.amount case final amount?)
+          '${formatAmount(amount)} ${tracker.unit}',
         if (gap != null) 'after ${spanLabel(gap)}',
         if (entry.note != null) entry.note!,
       ].join('  '));
@@ -158,6 +168,16 @@ class HealthCommand extends GeasCommand {
         .where((k) => k.yaml == (kindText ?? 'med').toLowerCase())
         .firstOrNull;
     if (kind == null) usageException('--kind is med or sensor.');
+    final unit = (argResults!['unit'] as String?)?.trim();
+    final doseText = argResults!['dose'] as String?;
+    final dose = doseText == null ? null : double.tryParse(doseText);
+    if (unit != null && (unit.isEmpty || unit.contains(RegExp(r'\s')))) {
+      usageException('--unit is one word, like mg.');
+    }
+    if (doseText != null && (dose == null || dose <= 0)) {
+      usageException('--dose is a number, like 500.');
+    }
+    if (dose != null && unit == null) usageException('--dose needs --unit.');
     await session.pull();
     final Tracker tracker;
     try {
@@ -166,6 +186,8 @@ class HealthCommand extends GeasCommand {
         session.workspace.trackers,
         kind: kind,
         every: everyText == null ? null : parseInterval(everyText),
+        unit: unit,
+        dose: dose,
       );
     } on FormatException catch (e) {
       throw CliException(e.message);
@@ -216,6 +238,9 @@ class LogCommand extends GeasCommand {
       ..addOption('at',
           help: 'When, if not now: 8am, 08:15, "yesterday 9pm" or '
               '"2026-11-14 21:00".')
+      ..addOption('amount',
+          help: 'How much, instead of the usual dose, for something '
+              'tracked with a unit.')
       ..addOption('note', help: 'A note to keep with this time.')
       ..addFlag('undo',
           negatable: false, help: 'Remove the latest time logged instead.');
@@ -233,7 +258,8 @@ class LogCommand extends GeasCommand {
 
   @override
   String get invocation =>
-      'geas log <name> [--at <when>] [--note <text>] [--undo]';
+      'geas log <name> [--at <when>] [--amount <n>] [--note <text>] '
+      '[--undo]';
 
   @override
   Future<int> run() async {
@@ -262,8 +288,18 @@ class LogCommand extends GeasCommand {
     } on FormatException catch (e) {
       throw CliException('--at: ${e.message}');
     }
-    final saved = await session.workspace
-        .saveTracker(tracker.log(at, note: args['note'] as String?));
+    final amountText = args['amount'] as String?;
+    final amount = amountText == null ? null : double.tryParse(amountText);
+    if (amountText != null && (amount == null || amount <= 0)) {
+      throw const CliException('--amount is a number, like 250.');
+    }
+    if (amount != null && tracker.unit == null) {
+      throw CliException('${tracker.name} has no unit to measure an amount '
+          'in. Add `unit: mg` to trackers/${tracker.id}.md, or edit it in '
+          'the app.');
+    }
+    final saved = await session.workspace.saveTracker(
+        tracker.log(at, amount: amount, note: args['note'] as String?));
     out.writeln('${tracker.kind.done} ${tracker.name} at ${formatTime(at)}; '
         '${trackerSummary(saved, now)}.');
     await session.push();

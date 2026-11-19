@@ -197,6 +197,20 @@ class FakeHomeWidget implements HomeWidgetHost {
   Future<void> show(String snapshot) async =>
       shown.add((jsonDecode(snapshot) as Map).cast());
 
+  /// Every Health snapshot shown, decoded, oldest first.
+  final health = <Map<String, Object?>>[];
+
+  /// The trackers in the latest Health snapshot, by id.
+  Map<String, Map<String, Object?>> get trackers => {
+    for (final t
+        in (health.last['trackers']! as List).cast<Map<String, Object?>>())
+      t['id']! as String: t,
+  };
+
+  @override
+  Future<void> showHealth(String snapshot) async =>
+      health.add((jsonDecode(snapshot) as Map).cast());
+
   @override
   Future<Uri?> launchedFrom() async => launchLink;
 

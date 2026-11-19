@@ -105,8 +105,10 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     return task;
   }
 
+  /// Finishes or reopens [task]. Finishing a repeating task also adds the
+  /// next one.
   void setDone(Task task, {required bool done}) =>
-      _save(done ? task.complete(_now) : task.reopen(_now));
+      _saveAll(done ? completeTask(task, _now) : [task.reopen(_now)]);
 
   void setChecklistItem(Task task, int line, {required bool done}) =>
       _save(task.setChecklistItem(line, done: done, now: _now));

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'dart:io';
 
 import 'package:geas_core/geas_core.dart';
@@ -260,5 +262,27 @@ void main() {
       expect(await geas(['sync']), 0);
       expect(geas.remoteTask('Buy milk').title, 'Buy milk');
     });
+  });
+
+  test('a repeating task comes back when done', () async {
+    expect(
+        await geas(['add', 'Water the plants', '-d', 'today', '-r', '2w']), 0,
+        reason: '${geas.err}');
+    final id = RegExp(r'^Added (\S+) ').firstMatch('${geas.out}')![1]!;
+    expect(await geas(['show', id]), 0);
+    expect('${geas.out}', contains('repeat    every 2 weeks'));
+
+    expect(await geas(['done', id]), 0);
+    expect('${geas.out}', contains('Next one is due 2026-11-23.'));
+    final tasks = geas.github.files.entries
+        .where((e) => e.key.startsWith('tasks/'))
+        .map((e) => Task.parse(utf8.decode(e.value)))
+        .toList();
+    expect(tasks, hasLength(2));
+    final next = tasks.singleWhere((t) => !t.isCompleted);
+    expect(next.due, const Due.date(LocalDate(2026, 11, 23)));
+    expect(next.repeat, const Repeat(2, RepeatUnit.week));
+
+    expect(await geas(['add', 'x', '-r', 'sometimes']), 64);
   });
 }

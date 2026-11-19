@@ -134,10 +134,10 @@ class _HomeWidgetDriverState extends ConsumerState<HomeWidgetDriver> {
       final store = ref.read(taskStoreProvider);
       final known = store.loaded && store.tasks.any((t) => t.id == id);
       if (known) {
-        final now = ref.read(clockProvider)();
-        ref
-            .read(taskStoreProvider.notifier)
-            .edit(id, (t) => t.isCompleted ? t : t.complete(now));
+        final task = store.tasks.firstWhere((t) => t.id == id);
+        if (!task.isCompleted) {
+          ref.read(taskStoreProvider.notifier).setDone(task, done: true);
+        }
       }
       reply.send(known);
     }

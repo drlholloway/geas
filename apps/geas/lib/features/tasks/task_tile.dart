@@ -51,6 +51,9 @@ class TaskTile extends ConsumerWidget {
         ),
       );
     }
+    if (task.repeat case final repeat? when !done) {
+      details.add(_Detail(icon: Icons.repeat, text: repeat.label));
+    }
     if (showList && task.list != inboxId) {
       final list = store.listById(task.list);
       details.add(

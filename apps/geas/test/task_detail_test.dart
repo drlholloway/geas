@@ -49,6 +49,57 @@ void main() {
     ].singleWhere((t) => t.title == title);
   }
 
+  testWidgets('finishing a repeating task adds the next one', (tester) async {
+    await open(tester, 'Reply to the luthier');
+    await choose(tester, 'Repeat', 'Every 2 weeks');
+    expect(inSheet(find.text('Every 2 weeks')), findsOneWidget);
+    await close(tester);
+    expect(find.text('Every 2 weeks'), findsOneWidget); // on its row
+
+    await tester.tap(
+      find.descendant(
+        of: find.widgetWithText(ListTile, 'Reply to the luthier'),
+        matching: find.byType(Checkbox),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // The next one, due two weeks from today.
+    expect(find.text('Reply to the luthier'), findsOneWidget);
+    expect(find.text('Nov 22'), findsOneWidget);
+
+    await tester.pump(syncDelay);
+    await tester.pumpAndSettle();
+    final both = [
+      for (final MapEntry(:key, :value) in app.github.files.entries)
+        if (key.endsWith('.md') && !isTrackerPath(key))
+          Task.parse(utf8.decode(value)),
+    ].where((t) => t.title == 'Reply to the luthier').toList();
+    expect(both, hasLength(2));
+    final next = both.singleWhere((t) => !t.isCompleted);
+    expect(next.repeat, const Repeat(2, RepeatUnit.week));
+    expect(next.due, Due.date(LocalDate.of(now).addDays(14)));
+    expect(both.singleWhere((t) => t.isCompleted).repeat, isNull);
+  });
+
+  testWidgets('a repeat can be typed, and removed', (tester) async {
+    await open(tester, 'Reply to the luthier');
+    await choose(tester, 'Repeat', 'Other…');
+    await tester.enterText(find.byType(TextField).last, 'whenever');
+    await tester.tap(find.text('Set'));
+    await tester.pump();
+    expect(find.text('Like 10d, 6 weeks or 2 months'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, '10 days');
+    await tester.tap(find.text('Set'));
+    await tester.pumpAndSettle();
+    expect(
+      (await remote(tester, 'Reply to the luthier')).repeat,
+      const Repeat(10, RepeatUnit.day),
+    );
+
+    await choose(tester, 'Every 10 days', "Don't repeat");
+    expect((await remote(tester, 'Reply to the luthier')).repeat, isNull);
+  });
+
   testWidgets('renaming saves and syncs', (tester) async {
     await open(tester, 'Reply to the luthier');
     await tester.enterText(

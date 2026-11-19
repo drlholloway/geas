@@ -184,7 +184,10 @@ Future<void> completeFromWidget(
     final task = workspace.task(id);
     if (task == null || task.isCompleted) return false;
     final now = clock();
-    await workspace.saveTask(task.complete(now), now: now);
+    // A repeating task also gets its next one.
+    for (final saved in completeTask(task, now)) {
+      await workspace.saveTask(saved, now: now);
+    }
     return true;
   }
 

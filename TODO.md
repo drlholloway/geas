@@ -58,6 +58,8 @@ list: inbox                    # list id; inbox is built in
 tags: [tayda, pedals]
 due: 2026-11-12                # or 2026-11-12T09:00-06:00 with a time
 priority: high                 # none | low | medium | high
+repeat: weekly                 # optional: daily | weekdays | weekly |
+                               # monthly | yearly | 2w, 10d, 3m...
 created: 2026-11-08T23:41:02Z
 updated: 2026-11-08T23:41:02Z
 completed: null                # UTC timestamp once done
@@ -397,6 +399,15 @@ how often.
       screenshots (`just screenshots` draws `health`, `health-tracker`
       and `phone-health`)
 
+## Phase 8: 0.4.0
+
+- [x] Recurring tasks: an optional `repeat` key (`Repeat` in core).
+      Finishing one (`completeTask`) completes it and adds a new task with
+      the same title, list, tags, priority and notes, the checklist
+      unticked, due on the next date after today, counted from the due
+      date. The finished one stops repeating. A Repeat chip in the task
+      sheet, the repeat on each row, and `geas add -r`
+
 ## Later
 
 - Health: reminders when a dose or sensor is due, doses with amounts, and
@@ -404,7 +415,6 @@ how often.
 
 - Reminders as local notifications on each device. Dismissals sync, so a
   device that hasn't synced yet may still fire one.
-- Recurring tasks (RRULE)
 - Background sync: a switch for it and its interval in Settings, and the
   same on Linux and macOS
 - Quick-add syntax shared by app and CLI (`#tag`, `^list`, `!high`,

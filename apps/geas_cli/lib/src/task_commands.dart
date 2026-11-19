@@ -36,7 +36,11 @@ class AddCommand extends GeasCommand {
       ..addOption('priority',
           abbr: 'p',
           help: 'high, medium, low or none '
-              '(h, m, l, n).');
+              '(h, m, l, n).')
+      ..addOption('repeat',
+          abbr: 'r',
+          help: 'Comes back when done: daily, weekdays, weekly, monthly, '
+              'yearly, or a count and unit like 2w or 10d.');
   }
 
   @override
@@ -47,7 +51,7 @@ class AddCommand extends GeasCommand {
 
   @override
   String get invocation => 'geas add "<title>" [-l <list>] [-t <tag>]... '
-      '[-d <due>] [-p <priority>]';
+      '[-d <due>] [-p <priority>] [-r <repeat>]';
 
   @override
   Future<int> run() async {
@@ -57,9 +61,12 @@ class AddCommand extends GeasCommand {
     final args = argResults!;
     final dueText = args['due'] as String?;
     final priorityText = args['priority'] as String?;
+    final repeatText = args['repeat'] as String?;
     final Due? due;
     final Priority priority;
+    final Repeat? repeat;
     try {
+      repeat = repeatText == null ? null : Repeat.parse(repeatText);
       due = dueText == null ? null : parseDueInput(dueText, now: now);
       priority =
           priorityText == null ? Priority.none : _parsePriority(priorityText);
@@ -82,7 +89,7 @@ class AddCommand extends GeasCommand {
         ],
         due: due,
         priority: priority,
-      ),
+      ).copyWith(repeat: repeat),
       now: now,
     );
     await session.reload();
@@ -247,6 +254,7 @@ class ShowCommand extends GeasCommand {
           '(${dueLabel(due, now)})',
         ].join(' '),
       if (task.priority != Priority.none) 'priority': task.priority.name,
+      if (task.repeat != null) 'repeat': task.repeat!.label.toLowerCase(),
       'created': formatTime(task.created),
       'updated': formatTime(task.updated),
       if (task.completed != null) 'done': formatTime(task.completed!),
@@ -298,9 +306,14 @@ class DoneCommand extends GeasCommand {
             undo ? '$label is already open.' : '$label is already done.');
         continue;
       }
-      await session.workspace
-          .saveTask(undo ? task.reopen(now) : task.complete(now), now: now);
+      final saved = undo ? [task.reopen(now)] : completeTask(task, now);
+      for (final t in saved) {
+        await session.workspace.saveTask(t, now: now);
+      }
       out.writeln('${undo ? 'Reopened' : 'Done:'} $label');
+      if (saved.length > 1) {
+        out.writeln('  Next one is due ${dueLabel(saved.last.due!, now)}.');
+      }
       changed = true;
     }
     if (changed) await session.push();

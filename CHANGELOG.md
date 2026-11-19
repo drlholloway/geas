@@ -6,6 +6,11 @@ GitHub Release notes.
 ## Unreleased
 
 ### Added
+- **Recurring tasks:** set a task to repeat every day, weekday, week,
+  month or year, or every so many ("10 days", "6 weeks"). Finishing it
+  adds the next one, due on the next date after today, with the same
+  list, tags, priority and notes and its checklist unticked. In the CLI,
+  `geas add -r weekly`.
 - **Background sync on Android:** Geas syncs about every half hour while
   it's closed, whenever there's a network, so the home-screen widget shows
   changes from your other devices without opening the app. Android may

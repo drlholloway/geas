@@ -185,6 +185,18 @@ class Tracker {
     return _withBody(_join(_lines(body)..removeAt(match.line)));
   }
 
+  /// Without its latest entry, if that was logged no more than [window]
+  /// before [now]; otherwise unchanged. For undoing a log just made.
+  Tracker withoutRecent(
+    DateTime now, {
+    Duration window = const Duration(minutes: 3),
+  }) {
+    final latest = entries.lastOrNull;
+    if (latest == null) return this;
+    final age = now.difference(latest.at);
+    return age.isNegative || age > window ? this : withoutEntry(latest);
+  }
+
   /// This tracker as a file. A parsed one changes only the fields that
   /// differ from what was read.
   String encode() {

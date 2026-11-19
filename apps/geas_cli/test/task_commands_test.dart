@@ -283,6 +283,17 @@ void main() {
     expect(next.due, const Due.date(LocalDate(2026, 11, 23)));
     expect(next.repeat, const Repeat(2, RepeatUnit.week));
 
+    // Undoing it takes the next one away again.
+    expect(await geas(['done', id, '--undo']), 0);
+    expect('${geas.out}', contains('Removed the next one, which was due'));
+    final left = geas.github.files.entries
+        .where((e) => e.key.startsWith('tasks/'))
+        .map((e) => Task.parse(utf8.decode(e.value)))
+        .toList();
+    expect(left.single.isCompleted, isFalse);
+    expect(left.single.repeat, const Repeat(2, RepeatUnit.week));
+    expect(left.single.due, const Due.date(LocalDate(2026, 11, 9)));
+
     expect(await geas(['add', 'x', '-r', 'sometimes']), 64);
   });
 

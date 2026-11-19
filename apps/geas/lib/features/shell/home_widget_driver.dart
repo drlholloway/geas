@@ -133,13 +133,21 @@ class _HomeWidgetDriverState extends ConsumerState<HomeWidgetDriver> {
   }
 
   /// A task ticked off on the widget, as `[id, reply]`, or a tracker
-  /// logged on the Health widget, as `['log', id, reply]`. Replies whether
+  /// logged on the Health widget, as `['log', id, reply]`, or that log
+  /// taken back, as `['unlog', id, reply]`. Replies whether
   /// this app did it; if not, the background does.
   void _finish(Object? message) {
-    if (message case ['log', final String id, final SendPort reply]) {
+    if (message case [
+      final String what && ('log' || 'unlog'),
+      final String id,
+      final SendPort reply,
+    ]) {
       final store = ref.read(taskStoreProvider);
       final known = store.loaded && store.trackerById(id) != null;
-      if (known) ref.read(taskStoreProvider.notifier).logTracker(id);
+      if (known) {
+        final trackers = ref.read(taskStoreProvider.notifier);
+        what == 'log' ? trackers.logTracker(id) : trackers.undoRecentLog(id);
+      }
       reply.send(known);
       return;
     }

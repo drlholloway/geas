@@ -55,8 +55,9 @@ import org.json.JSONObject
  * both stay right while the app is closed.
  *
  * A row's button logs it now: the row says so at once, and the app's Dart
- * code logs and syncs it in the background. The title, or a row, opens
- * Health in the app.
+ * code logs and syncs it in the background. For a couple of minutes after,
+ * the button reads Undo and takes that log back, in case the tap was a
+ * slip. The title, or a row, opens Health in the app.
  */
 class HealthWidgetReceiver : HomeWidgetGlanceWidgetReceiver<HealthWidget>() {
   override val glanceAppWidget = HealthWidget()
@@ -85,6 +86,24 @@ class LogTrackerAction : ActionCallback {
 
   companion object {
     val trackerId = ActionParameters.Key<String>("tracker")
+  }
+}
+
+/**
+ * Takes back the log of the tracker in [trackerId] made here a moment ago.
+ * If that moment has passed, as when an old drawing of the widget still
+ * shows Undo, it only redraws, so the button reads Take again.
+ */
+class UndoLogAction : ActionCallback {
+  override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+    val id = parameters[LogTrackerAction.trackerId] ?: return
+    val prefs = HomeWidgetPlugin.getData(context)
+    val recent = id in PendingLogs.read(prefs)
+    PendingLogs.remove(prefs, id)
+    HealthWidget().updateAll(context)
+    if (recent) {
+      HomeWidgetBackgroundIntent.getBroadcast(context, Uri.parse("geas://unlog/${Uri.encode(id)}")).send()
+    }
   }
 }
 
@@ -156,6 +175,12 @@ private object PendingLogs {
       if (now - json.getLong(key) >= LAPSE_MS) json.remove(key)
     }
     json.put(id, now)
+    prefs.edit().putString(KEY, json.toString()).apply()
+  }
+
+  fun remove(prefs: SharedPreferences, id: String) {
+    val json = JSONObject(prefs.getString(KEY, null) ?: "{}")
+    json.remove(id)
     prefs.edit().putString(KEY, json.toString()).apply()
   }
 }
@@ -277,14 +302,22 @@ private fun TrackerRow(context: Context, tracker: WidgetTracker, pendingAt: Long
       GlanceModifier.background(button).cornerRadius(16.dp)
         .padding(horizontal = 14.dp, vertical = 8.dp)
         .clickable(
-          actionRunCallback<LogTrackerAction>(
-            actionParametersOf(LogTrackerAction.trackerId to tracker.id),
-          ),
+          // Logged from here in the last couple of minutes: offer to take
+          // it back instead of logging it twice.
+          if (pendingAt != null) {
+            actionRunCallback<UndoLogAction>(
+              actionParametersOf(LogTrackerAction.trackerId to tracker.id),
+            )
+          } else {
+            actionRunCallback<LogTrackerAction>(
+              actionParametersOf(LogTrackerAction.trackerId to tracker.id),
+            )
+          },
         ),
       contentAlignment = Alignment.Center,
     ) {
       Text(
-        tracker.action,
+        if (pendingAt != null) "Undo" else tracker.action,
         style = TextStyle(color = onButton, fontSize = 13.sp, fontWeight = FontWeight.Medium),
       )
     }

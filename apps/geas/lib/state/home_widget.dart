@@ -150,11 +150,12 @@ Future<void> showHealth(
   await host.showHealth(jsonEncode(healthSnapshot(trackers, now: now)));
 }
 
-/// The id in a `geas://log/<id>` link, else null.
-String? logTrackerId(Uri? uri) =>
+/// The id in a `geas://log/<id>` link, or with [undo] a
+/// `geas://unlog/<id>` one, else null.
+String? logTrackerId(Uri? uri, {bool undo = false}) =>
     uri != null &&
         uri.scheme == 'geas' &&
-        uri.host == 'log' &&
+        uri.host == (undo ? 'unlog' : 'log') &&
         uri.pathSegments.length == 1
     ? uri.pathSegments.single
     : null;
@@ -169,18 +170,20 @@ String? doneTaskId(Uri? uri) =>
     : null;
 
 /// The name the running app listens under for tasks ticked off on the
-/// widget, as `[id, SendPort reply]`, and trackers logged on it, as
-/// `['log', id, SendPort reply]`; it replies true once it has them.
+/// widget, as `[id, SendPort reply]`, and trackers logged on it, or a log
+/// taken back, as `['log', id, SendPort reply]` or `['unlog', ...]`; it
+/// replies true once it has them.
 const donePortName = 'geas.widget.done';
 
 /// Runs in a background isolate when a widget checkbox or a Health
 /// widget's button is tapped.
 @pragma('vm:entry-point')
 Future<void> homeWidgetCallback(Uri? uri) async {
-  final tracker = logTrackerId(uri);
-  if (tracker != null) {
-    if (await handToApp(tracker, log: true)) return;
-    return logFromWidget(tracker, await AppEnvironment.platform());
+  for (final undo in [false, true]) {
+    final tracker = logTrackerId(uri, undo: undo);
+    if (tracker == null) continue;
+    if (await handToApp(tracker, log: !undo, unlog: undo)) return;
+    return logFromWidget(tracker, await AppEnvironment.platform(), undo: undo);
   }
   final id = doneTaskId(uri);
   if (id == null) return;
@@ -191,18 +194,20 @@ Future<void> homeWidgetCallback(Uri? uri) async {
 }
 
 /// Passes [id] to the running app, if it's listening, and waits for it to
-/// take it: a task to finish, or with [log] a tracker to log now. False if
-/// there's no app or it didn't answer.
+/// take it: a task to finish, or with [log] a tracker to log now, or with
+/// [unlog] one whose log just made is to be taken back. False if there's no
+/// app or it didn't answer.
 Future<bool> handToApp(
   String id, {
   bool log = false,
+  bool unlog = false,
   Duration wait = const Duration(seconds: 2),
 }) async {
   final app = IsolateNameServer.lookupPortByName(donePortName);
   if (app == null) return false;
   final reply = ReceivePort();
   try {
-    app.send(log ? ['log', id, reply.sendPort] : [id, reply.sendPort]);
+    app.send([if (log) 'log' else if (unlog) 'unlog', id, reply.sendPort]);
     return await reply.first.timeout(wait) == true;
   } on TimeoutException {
     // Registered by an app that has since closed.
@@ -282,11 +287,14 @@ Future<void> completeFromWidget(
   if (finished && await sync()) await redraw();
 }
 
-/// Logs the tracker with [id] now in this device's copy, redraws the Health
-/// widget, then syncs. Offline, the change goes out with the next sync.
+/// Logs the tracker with [id] now in this device's copy, or with [undo]
+/// takes back its log if that was made in the last few minutes; redraws
+/// the Health widget, then syncs. Offline, the change goes out with the
+/// next sync.
 Future<void> logFromWidget(
   String id,
   AppEnvironment env, {
+  bool undo = false,
   DateTime Function() clock = DateTime.now,
 }) async {
   final config = await env.config.load();
@@ -320,7 +328,11 @@ Future<void> logFromWidget(
   // Not in this copy, as when the app's data was cleared: fetch it first.
   if (workspace.tracker(id) == null && !await sync()) return;
   final tracker = workspace.tracker(id);
-  if (tracker != null) await workspace.saveTracker(tracker.log(clock()));
+  if (tracker != null) {
+    await workspace.saveTracker(
+      undo ? tracker.withoutRecent(clock()) : tracker.log(clock()),
+    );
+  }
   await redraw();
   if (tracker == null) return;
   // Its next reminder counts from this log.

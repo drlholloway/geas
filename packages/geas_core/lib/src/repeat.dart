@@ -166,6 +166,35 @@ List<Task> completeTask(Task task, DateTime now, {Random? random}) {
   ];
 }
 
+/// [task] open again at [now]. If finishing it added the next one of a
+/// repeating task ([completeTask]), and that one among [tasks] is still
+/// open under the same title, it's returned as `replaced` to be deleted,
+/// and [task] takes its repeat back, so there's one of them again.
+///
+/// The next one is known by being created at the moment [task] was
+/// finished. One that has since been finished or renamed is left alone.
+({Task task, Task? replaced}) reopenTask(
+  Task task,
+  Iterable<Task> tasks,
+  DateTime now,
+) {
+  final finished = task.completed;
+  final next = finished == null || task.repeat != null
+      ? null
+      : tasks
+          .where((t) =>
+              t.id != task.id &&
+              !t.isCompleted &&
+              t.repeat != null &&
+              t.created == finished &&
+              t.title == task.title)
+          .firstOrNull;
+  return (
+    task: task.reopen(now).copyWith(repeat: next?.repeat ?? task.repeat),
+    replaced: next,
+  );
+}
+
 int _weekday(LocalDate date) =>
     DateTime.utc(date.year, date.month, date.day).weekday;
 

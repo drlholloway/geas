@@ -5,6 +5,15 @@ GitHub Release notes.
 
 ## Unreleased
 
+## 0.4.0 — 2026-11-19
+
+Recurring tasks, quick add, search and saved filters, reminders, dose
+amounts and a Health widget, and syncing on its own on every platform.
+
+Update every device together: 0.3.0 keeps a task's repeat and a
+medication's unit and dose but ignores them, so a repeating task finished
+there doesn't come back.
+
 ### Added
 - **Recurring tasks:** set a task to repeat every day, weekday, week,
   month or year, or every so many ("10 days", "6 weeks"). Finishing it

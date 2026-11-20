@@ -116,8 +116,8 @@ class TrackCommand extends GeasCommand {
   TrackCommand(super.context) {
     argParser
       ..addOption('carrier',
-          help: 'usps, ups, fedex, dhl, gofo or other (default: from the '
-              'number).')
+          help: 'usps, ups, fedex, dhl, gofo, amazon or other (default: from '
+              'the number).')
       ..addOption('eta', help: 'When it\'s expected: today, fri, 2026-11-14.')
       ..addOption('status',
           help: 'in-transit, out-for-delivery, delivered, problem or '

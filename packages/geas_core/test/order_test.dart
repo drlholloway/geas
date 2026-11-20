@@ -101,6 +101,9 @@ Notes.
       expect(Carrier.detect('LA123456789CN'), Carrier.usps);
       expect(Carrier.detect('yt2315921266046217'), Carrier.gofo);
       expect(Carrier.detect('GFUS01029396906368'), Carrier.gofo);
+      expect(Carrier.detect('TBA123456789012'), Carrier.amazon);
+      expect(Carrier.detect('tbc 1234 5678 9012'), Carrier.amazon);
+      expect(Carrier.detect('TBA12345'), Carrier.other);
       expect(Carrier.detect('YT123'), Carrier.other);
       expect(Carrier.detect('ABC'), Carrier.other);
     });
@@ -115,6 +118,8 @@ Notes.
           containsPair('tracking-id', '1234567890'));
       expect('${Carrier.gofo.trackingUrl('YT2315921266046217')}',
           'https://www.gofo.com/us/track?searchID=YT2315921266046217');
+      expect('${Carrier.amazon.trackingUrl('TBA123456789012')}',
+          'https://track.amazon.com/tracking/TBA123456789012');
       expect(Carrier.other.trackingUrl('x'), isNull);
     });
 

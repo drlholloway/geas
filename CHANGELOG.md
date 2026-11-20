@@ -5,6 +5,10 @@ GitHub Release notes.
 
 ## Unreleased
 
+### Added
+- **Amazon tracking numbers:** numbers starting `TBA` (or `TBC`, `TBM`)
+  are recognized as Amazon and open on Amazon's tracking page.
+
 ## 0.4.0 — 2026-11-19
 
 Recurring tasks, quick add, search and saved filters, reminders, dose

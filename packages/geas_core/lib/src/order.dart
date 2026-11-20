@@ -65,6 +65,9 @@ enum Carrier {
 
   /// GOFO Express, which delivers YunExpress (`YT…`) parcels in the US.
   gofo('GOFO'),
+
+  /// Amazon's own delivery service, whose numbers start `TBA`.
+  amazon('Amazon'),
   other('Other');
 
   const Carrier(this.label);
@@ -90,6 +93,8 @@ enum Carrier {
         RegExp(r'^[A-Z]{2}\d{9}[A-Z]{2}$').hasMatch(t)) {
       return usps;
     }
+    // Amazon Logistics: TBA in the US, TBC in Canada, TBM in Mexico.
+    if (RegExp(r'^TB[ACM]\d{12}$').hasMatch(t)) return amazon;
     // YunExpress numbers and GOFO's own waybills.
     if (RegExp(r'^YT\d{16}$').hasMatch(t) ||
         RegExp(r'^(GFUS|CIUS)\d{11,15}$').hasMatch(t)) {
@@ -118,6 +123,7 @@ enum Carrier {
           {'submit': '1', 'tracking-id': t},
         ),
       gofo => Uri.https('www.gofo.com', '/us/track', {'searchID': t}),
+      amazon => Uri.https('track.amazon.com', '/tracking/$t'),
       other => null,
     };
   }

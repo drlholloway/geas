@@ -171,6 +171,7 @@ class TaskQuery {
 }
 
 final _idPattern = RegExp(r'^[A-Za-z0-9_-]+$');
+const _keepFolder = Object();
 
 /// A search kept under a name, stored as `filters/<id>.yaml` so every
 /// device has it.
@@ -180,6 +181,7 @@ class SavedFilter {
     required this.name,
     required this.query,
     this.order = 0,
+    this.folder,
     this.source,
   });
 
@@ -202,6 +204,10 @@ class SavedFilter {
       name: requireString(map, 'name', what),
       query: optionalString(map, 'query', what) ?? '',
       order: order as int? ?? 0,
+      folder: switch (optionalString(map, 'folder', what)?.trim()) {
+        null || '' => null,
+        final id => id,
+      },
       source: text,
     );
   }
@@ -215,25 +221,46 @@ class SavedFilter {
   /// Filters sort by [order], then name.
   final int order;
 
+  /// The id of the folder it's in: the optional `folder` key.
+  final String? folder;
+
   /// The file as it was read, or null if it hasn't been written. [encode]
   /// edits it in place, keeping comments and unknown keys.
   final String? source;
 
   String encode() {
     final source = this.source;
-    if (source == null || source.trim().isEmpty) return emitYamlMap(_fields());
+    if (source == null || source.trim().isEmpty) {
+      // A filter in no folder has no `folder` key.
+      return emitYamlMap(
+          _fields()..removeWhere((k, v) => k == 'folder' && v == null));
+    }
     return patchYamlMap(source, _fields(), SavedFilter.parse(source)._fields());
   }
 
-  Map<String, Object?> _fields() =>
-      {'id': id, 'name': name, 'query': query, 'order': order};
+  Map<String, Object?> _fields() => {
+        'id': id,
+        'name': name,
+        'query': query,
+        'order': order,
+        'folder': folder,
+      };
 
-  SavedFilter copyWith({String? name, String? query, int? order}) =>
+  /// A copy with the given fields replaced. Pass null for [folder] to take
+  /// it out of its folder.
+  SavedFilter copyWith({
+    String? name,
+    String? query,
+    int? order,
+    Object? folder = _keepFolder,
+  }) =>
       SavedFilter(
         id: id,
         name: name ?? this.name,
         query: query ?? this.query,
         order: order ?? this.order,
+        folder:
+            identical(folder, _keepFolder) ? this.folder : folder as String?,
         source: source,
       );
 
@@ -243,10 +270,11 @@ class SavedFilter {
       other.id == id &&
       other.name == name &&
       other.query == query &&
-      other.order == order;
+      other.order == order &&
+      other.folder == folder;
 
   @override
-  int get hashCode => Object.hash(id, name, query, order);
+  int get hashCode => Object.hash(id, name, query, order, folder);
 
   @override
   String toString() => 'SavedFilter($id, $query)';

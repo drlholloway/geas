@@ -6,6 +6,7 @@ import 'package:geas_core/geas_core.dart';
 
 import 'src/context.dart';
 import 'src/find_commands.dart';
+import 'src/folder_commands.dart';
 import 'src/health_commands.dart';
 import 'src/init_command.dart';
 import 'src/list_commands.dart';
@@ -48,6 +49,7 @@ Future<int> runGeas(List<String> args, GeasContext context) async {
     RmCommand(context),
     EditCommand(context),
     ListsCommand(context),
+    FoldersCommand(context),
     TagsCommand(context),
     SyncCommand(context),
   ]) {

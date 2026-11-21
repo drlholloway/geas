@@ -37,6 +37,13 @@ Plan and status. Check items off as they land; move anything cut from v1 to
   is checked before it's saved; Geas warns two weeks before it expires.
   Signing in through a registered GitHub App is in Later.
 
+- **Categorization (2026-11-20):** tags, plus folders. A folder groups
+  lists, saved filters and Health trackers; a thing is in at most one
+  folder, and folders don't nest. Membership is an optional `folder` key
+  on each member, so moving one thing edits one file and two devices
+  filing different things never collide. Something filed in a folder that
+  no longer exists counts as in none.
+
 ## Data format
 
 ```
@@ -44,6 +51,7 @@ geas-data/
   geas.yaml                 format: 1
   lists/<id>.yaml           id, name, color, order
   filters/<id>.yaml         a saved search: id, name, query, order
+  folders/<id>.yaml         a folder: id, name, order
   trackers/<id>.md          a medication or sensor and every time it was logged
   tasks/<id>.md             open and recently completed tasks
   archive/<yyyy>/<id>.md    tasks completed more than 30 days ago
@@ -470,6 +478,15 @@ how often.
       one it made, if that's still open under the same title, and gives the
       repeat back
 
+- [x] Folders (`Folder` in core, `folders/<id>.yaml`): a `folder` key on
+      lists, saved filters and trackers. The sidebar shows each folder as
+      a collapsible section with its lists and filters; Health groups its
+      trackers under folder headings, and dragging reorders within a
+      folder. "Move to folder" on a list's, filter's and tracker's menu
+      (with a new folder made on the spot); rename and delete on the
+      folder's. Deleting a folder frees what was in it. `geas folders`
+      (`add`, `rename`, `rm`, `put`, `take`)
+
 ## Later
 
 - Reminders: syncing dismissals between devices, a choice of time for
@@ -480,7 +497,8 @@ how often.
 - Sign in through a registered Geas GitHub App (device flow): no token to
   copy, but an app to register and tokens to refresh every 8 hours
 - Habits and Pomodoro
-- Folders that group lists
+- Folders: nesting, reordering folders by drag, and remembering which are
+  collapsed between runs
 - Manual ordering within a list
 - OAuth device flow instead of a pasted token
 - Live package status pulled from carriers or a tracking aggregator,
@@ -490,8 +508,3 @@ how often.
   needs one key but costs money above a free tier. The key would be stored
   like the GitHub token
 - Adding orders from shipping-confirmation emails
-
-## Open questions
-
-- "Categorization" is planned as tags. If it should mean folders that group
-  lists, pull that up from Later.

@@ -16,6 +16,7 @@ class TaskList {
     required this.name,
     this.color,
     this.order = 0,
+    this.folder,
     this.source,
   });
 
@@ -39,6 +40,7 @@ class TaskList {
       name: requireString(map, 'name', what),
       color: optionalString(map, 'color', what),
       order: order as int? ?? 0,
+      folder: _folder(optionalString(map, 'folder', what)),
       source: text,
     );
   }
@@ -52,26 +54,45 @@ class TaskList {
   /// Lists sort by [order], then name.
   final int order;
 
+  /// The id of the folder it's in: the optional `folder` key.
+  final String? folder;
+
   /// The file as it was read, or null if it hasn't been written. [encode]
   /// edits it in place, keeping comments and unknown keys.
   final String? source;
 
   String encode() {
     final source = this.source;
-    if (source == null || source.trim().isEmpty) return emitYamlMap(_fields());
+    if (source == null || source.trim().isEmpty) {
+      // A list in no folder has no `folder` key.
+      return emitYamlMap(
+          _fields()..removeWhere((k, v) => k == 'folder' && v == null));
+    }
     return patchYamlMap(source, _fields(), TaskList.parse(source)._fields());
   }
 
-  Map<String, Object?> _fields() =>
-      {'id': id, 'name': name, 'color': color, 'order': order};
+  Map<String, Object?> _fields() => {
+        'id': id,
+        'name': name,
+        'color': color,
+        'order': order,
+        'folder': folder,
+      };
 
-  /// A copy with the given fields replaced. Pass null for [color] to clear it.
-  TaskList copyWith({String? name, Object? color = _keep, int? order}) =>
+  /// A copy with the given fields replaced. Pass null for [color] or
+  /// [folder] to clear them.
+  TaskList copyWith({
+    String? name,
+    Object? color = _keep,
+    int? order,
+    Object? folder = _keep,
+  }) =>
       TaskList(
         id: id,
         name: name ?? this.name,
         color: identical(color, _keep) ? this.color : color as String?,
         order: order ?? this.order,
+        folder: identical(folder, _keep) ? this.folder : folder as String?,
         source: source,
       );
 
@@ -81,13 +102,20 @@ class TaskList {
       other.id == id &&
       other.name == name &&
       other.color == color &&
-      other.order == order;
+      other.order == order &&
+      other.folder == folder;
 
   @override
-  int get hashCode => Object.hash(id, name, color, order);
+  int get hashCode => Object.hash(id, name, color, order, folder);
 
   @override
   String toString() => 'TaskList($id, $name)';
+}
+
+/// An empty `folder` is no folder.
+String? _folder(String? text) {
+  final id = text?.trim() ?? '';
+  return id.isEmpty ? null : id;
 }
 
 /// [lists] in display order, with the inbox first unless a file places it.

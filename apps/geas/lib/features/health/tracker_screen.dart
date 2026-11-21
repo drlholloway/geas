@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../state/store.dart';
+import '../folders/folder_actions.dart';
 import '../tasks/due_label.dart';
 import 'health_screen.dart';
 import 'tracker_dialog.dart';
@@ -134,6 +135,23 @@ class TrackerScreen extends ConsumerWidget {
                 child: const ListTile(
                   leading: Icon(Icons.edit_outlined),
                   title: Text('Edit'),
+                ),
+              ),
+              PopupMenuItem(
+                onTap: () => moveToFolder(
+                  context,
+                  ref,
+                  current: tracker.folder,
+                  onPicked: (folder) => ref
+                      .read(taskStoreProvider.notifier)
+                      .editTracker(
+                        tracker.id,
+                        (t) => t.copyWith(folder: folder),
+                      ),
+                ),
+                child: const ListTile(
+                  leading: Icon(Icons.drive_file_move_outlined),
+                  title: Text('Move to folder'),
                 ),
               ),
               PopupMenuItem(

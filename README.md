@@ -12,7 +12,8 @@ are plain Markdown files in a repo you own.
 ## What it does
 
 - **Lists, tags, due dates with optional times, priorities, checklists and
-  notes.** Inbox, Today and Next 7 days views.
+  notes.** Inbox, Today and Next 7 days views. Folders group lists, saved
+  filters and Health trackers.
 - **Health:** log each medication dose and CGM sensor change, and see how
   often: doses or amounts a day, days of wear, and when the next is due.
   On Android, a home-screen widget logs one with a tap.

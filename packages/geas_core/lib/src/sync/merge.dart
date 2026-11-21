@@ -6,6 +6,7 @@ import 'package:yaml_edit/yaml_edit.dart';
 
 import '../archive.dart';
 import '../filter.dart';
+import '../folder.dart';
 import '../task.dart';
 import '../task_list.dart';
 import '../tracker.dart';
@@ -34,7 +35,7 @@ class TreeMerge {
 ///   recorded. `updated` becomes the later of the two.
 /// - Edited on one side and deleted on the other: the edit is kept and
 ///   recorded.
-/// - Lists and saved filters merge key by key, with the remote winning a
+/// - Lists, saved filters and folders merge key by key, with the remote winning a
 ///   conflict.
 /// - Trackers merge their settings like lists and their logs as sets of
 ///   lines, so times logged on two devices are all kept.
@@ -78,6 +79,10 @@ TreeMerge mergeTrees({
       kept = _mergeList(
           (eb?.isFilter ?? false) ? eb : null, el, er, now, conflicts,
           parse: SavedFilter.parse);
+    } else if (el.isFolder && er.isFolder) {
+      kept = _mergeList(
+          (eb?.isFolder ?? false) ? eb : null, el, er, now, conflicts,
+          parse: Folder.parse);
     } else if (el.isTracker && er.isTracker) {
       kept = _mergeTracker(
           (eb?.isTracker ?? false) ? eb : null, el, er, now, conflicts);
@@ -100,6 +105,7 @@ class _Entry {
     this.isList = false,
     this.isTracker = false,
     this.isFilter = false,
+    this.isFolder = false,
   });
 
   final String path;
@@ -116,6 +122,9 @@ class _Entry {
 
   /// A valid saved-filter file.
   final bool isFilter;
+
+  /// A valid folder file.
+  final bool isFolder;
 
   String get key => task?.id ?? path;
   String get text => utf8.decode(bytes, allowMalformed: true);
@@ -140,6 +149,10 @@ _Entry _entry(String path, List<int> bytes) {
     if (path.startsWith('lists/') && path.endsWith('.yaml')) {
       TaskList.parse(utf8.decode(bytes));
       return _Entry(path, bytes, isList: true);
+    }
+    if (isFolderPath(path)) {
+      Folder.parse(utf8.decode(bytes));
+      return _Entry(path, bytes, isFolder: true);
     }
     if (isFilterPath(path)) {
       SavedFilter.parse(utf8.decode(bytes));
@@ -251,6 +264,7 @@ _Entry _mergeList(
     utf8.encode(merged.text),
     isList: remote.isList,
     isFilter: remote.isFilter,
+    isFolder: remote.isFolder,
   );
 }
 

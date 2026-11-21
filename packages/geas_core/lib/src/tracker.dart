@@ -78,6 +78,7 @@ class Tracker {
     this.unit,
     this.dose,
     this.order = 0,
+    this.folder,
     this.body = '',
     this.frontmatter,
   });
@@ -128,6 +129,10 @@ class Tracker {
       unit: unit == null || unit.isEmpty ? null : unit,
       dose: dose,
       order: order as int? ?? 0,
+      folder: switch (optionalString(map, 'folder', what)?.trim()) {
+        null || '' => null,
+        final id => id,
+      },
       body: parts.body,
       frontmatter: parts.frontmatter,
     );
@@ -152,6 +157,9 @@ class Tracker {
 
   /// Trackers sort by [order], then name.
   final int order;
+
+  /// The id of the folder it's in: the optional `folder` key.
+  final String? folder;
 
   /// The log: one list item per time. Other lines are kept as notes.
   final String body;
@@ -223,6 +231,7 @@ class Tracker {
           final d => d,
         },
         'order': order,
+        'folder': folder,
       };
 
   Tracker _withBody(String body) => Tracker(
@@ -233,12 +242,13 @@ class Tracker {
         unit: unit,
         dose: dose,
         order: order,
+        folder: folder,
         body: body,
         frontmatter: frontmatter,
       );
 
-  /// A copy with the given fields replaced. Pass null for [every], [unit]
-  /// or [dose] to clear them.
+  /// A copy with the given fields replaced. Pass null for [every], [unit],
+  /// [dose] or [folder] to clear them.
   Tracker copyWith({
     String? name,
     TrackerKind? kind,
@@ -246,6 +256,7 @@ class Tracker {
     Object? unit = _keep,
     Object? dose = _keep,
     int? order,
+    Object? folder = _keep,
   }) =>
       Tracker(
         id: id,
@@ -255,6 +266,7 @@ class Tracker {
         unit: identical(unit, _keep) ? this.unit : unit as String?,
         dose: identical(dose, _keep) ? this.dose : dose as double?,
         order: order ?? this.order,
+        folder: identical(folder, _keep) ? this.folder : folder as String?,
         body: body,
         frontmatter: frontmatter,
       );
@@ -270,11 +282,12 @@ class Tracker {
       other.unit == unit &&
       other.dose == dose &&
       other.order == order &&
+      other.folder == folder &&
       other.body == body;
 
   @override
   int get hashCode =>
-      Object.hash(id, name, kind, every, unit, dose, order, body);
+      Object.hash(id, name, kind, every, unit, dose, order, folder, body);
 
   @override
   String toString() => 'Tracker($id, $name)';
@@ -295,6 +308,13 @@ List<Tracker> sortTrackers(Iterable<Tracker> trackers) => trackers.toList()
         ? byOrder
         : a.name.toLowerCase().compareTo(b.name.toLowerCase());
   });
+
+/// [sequence] numbered in that order: the trackers whose `order` has to
+/// change for it, renumbered from 1. Empty if they're already in order.
+List<Tracker> renumberTrackers(List<Tracker> sequence) => [
+      for (final (i, t) in sequence.indexed)
+        if (t.order != i + 1) t.copyWith(order: i + 1),
+    ];
 
 /// [trackers] with [id] moved to [index] (0 is first): the ones whose
 /// `order` has to change for that, renumbered from 1. Empty if nothing

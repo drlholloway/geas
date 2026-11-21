@@ -166,7 +166,8 @@ The Git Data API refuses writes to an empty repo, so `geas init` creates
 - [x] Private code repo `drlholloway/geas` with an initial commit
 - [x] Private data repo `drlholloway/geas-data`, left empty (`geas init`
       bootstraps it)
-- [ ] Fine-grained token: only `geas-data`, Contents read/write
+- [x] Fine-grained token: only `geas-data`, Contents read/write (checked
+      on GitHub, 2026-11-20)
 - [x] Pub workspace mirroring FretboardTrainer: root `pubspec.yaml`
       workspace, `packages/geas_core`, `apps/geas_cli`
 - [x] `apps/geas` via

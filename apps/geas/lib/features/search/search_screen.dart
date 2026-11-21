@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../state/store.dart';
+import '../folders/folder_actions.dart';
 import '../shell/sidebar.dart';
 import '../tasks/task_tile.dart';
 
@@ -120,6 +121,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   child: const ListTile(
                     leading: Icon(Icons.edit_outlined),
                     title: Text('Rename filter'),
+                  ),
+                ),
+                PopupMenuItem(
+                  onTap: () => moveToFolder(
+                    context,
+                    ref,
+                    current: filter.folder,
+                    onPicked: (folder) =>
+                        store_.saveFilter(filter.copyWith(folder: folder)),
+                  ),
+                  child: const ListTile(
+                    leading: Icon(Icons.drive_file_move_outlined),
+                    title: Text('Move to folder'),
                   ),
                 ),
                 PopupMenuItem(

@@ -94,6 +94,13 @@ class HealthScreen extends ConsumerWidget {
     final narrow = MediaQuery.sizeOf(context).width < sidebarBreakpoint;
     final theme = Theme.of(context);
     final trackers = store.trackers;
+    // Those in no folder first, then each folder's, in the folders' order.
+    Folder? folderOf(Tracker tracker) => store.folderById(tracker.folder);
+    final shown = [
+      ...trackers.where((t) => folderOf(t) == null),
+      for (final folder in store.folders)
+        ...trackers.where((t) => t.folder == folder.id),
+    ];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Health')),
@@ -137,21 +144,54 @@ class HealthScreen extends ConsumerWidget {
               // on a card never picks it up.
               buildDefaultDragHandles: false,
               proxyDecorator: (child, _, _) => child,
-              onReorderItem: (from, to) => ref
-                  .read(taskStoreProvider.notifier)
-                  .moveTracker(trackers[from].id, to),
+              // The new order is kept as shown. A card stays in its folder,
+              // so one dropped among another folder's cards goes back to
+              // its own, in its new place there.
+              onReorderItem: (from, to) {
+                final ids = [for (final t in shown) t.id];
+                ids.insert(to, ids.removeAt(from));
+                ref.read(taskStoreProvider.notifier).reorderTrackers(ids);
+              },
               children: [
-                for (final (index, tracker) in trackers.indexed)
+                for (final (index, tracker) in shown.indexed)
                   Align(
                     key: ValueKey(tracker.id),
                     alignment: Alignment.topLeft,
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 640),
-                      child: _TrackerCard(
-                        tracker: tracker,
-                        now: now,
-                        index: index,
-                        movable: trackers.length > 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // The first card of each folder carries its name.
+                          if (folderOf(tracker) case final folder?
+                              when index == 0 ||
+                                  folderOf(shown[index - 1])?.id != folder.id)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(8, 16, 8, 4),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.folder_outlined,
+                                    size: 16,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    folder.name,
+                                    style: theme.textTheme.titleSmall!.copyWith(
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          _TrackerCard(
+                            tracker: tracker,
+                            now: now,
+                            index: index,
+                            movable: shown.length > 1,
+                          ),
+                        ],
                       ),
                     ),
                   ),

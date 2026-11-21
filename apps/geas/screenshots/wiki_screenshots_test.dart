@@ -188,6 +188,57 @@ void main() {
     await shot(tester, 'repeat-menu');
   });
 
+  shotTest('folders', (tester) async {
+    await app.seed();
+    app.github.push({
+      folderPath('workbench'): utf8.encode(
+        const Folder(id: 'workbench', name: 'Workbench', order: 1).encode(),
+      ),
+      folderPath('diabetes'): utf8.encode(
+        const Folder(id: 'diabetes', name: 'Diabetes', order: 2).encode(),
+      ),
+      'lists/pedals.yaml': utf8.encode(
+        const TaskList(
+          id: 'pedals',
+          name: 'Pedals',
+          color: '#E07A2F',
+          order: 1,
+          folder: 'workbench',
+        ).encode(),
+      ),
+      filterPath('tayda'): utf8.encode(
+        const SavedFilter(
+          id: 'tayda',
+          name: 'Tayda orders',
+          query: '#tayda',
+          order: 1,
+          folder: 'workbench',
+        ).encode(),
+      ),
+    });
+    for (final id in ['metformin', 'cgm-sensor']) {
+      final tracker = Tracker.parse(
+        utf8.decode(app.github.files[trackerPath(id)]!),
+      );
+      app.github.push({
+        trackerPath(id): utf8.encode(
+          tracker.copyWith(folder: 'diabetes').encode(),
+        ),
+      });
+    }
+    await pump(tester, app);
+    await go(tester, 'Pedals');
+    await tester.tap(find.byTooltip('List options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Move to folder'));
+    await tester.pumpAndSettle();
+    await shot(tester, 'move-to-folder');
+    await tester.tapAt(const Offset(700, 760));
+    await tester.pumpAndSettle();
+    await go(tester, 'Health');
+    await shot(tester, 'folders');
+  });
+
   shotTest('conflicts', (tester) async {
     await app.seed();
     await pump(tester, app);

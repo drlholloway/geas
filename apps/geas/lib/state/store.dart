@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geas_core/geas_core.dart';
-import 'package:geas_core/geas_core.dart' as geas show moveTracker;
 
 import 'session.dart';
 import 'sync.dart';
@@ -18,11 +17,13 @@ class TaskStore {
     required Iterable<TaskList> lists,
     Iterable<Tracker> trackers = const [],
     Iterable<SavedFilter> filters = const [],
+    Iterable<Folder> folders = const [],
     this.loaded = true,
     this.warnDays = defaultWarnDays,
   }) : lists = withInbox(lists),
        trackers = sortTrackers(trackers),
-       filters = sortFilters(filters);
+       filters = sortFilters(filters),
+       folders = sortFolders(folders);
 
   /// Before the local copy has been read.
   TaskStore.loading() : this(tasks: const [], lists: const [], loaded: false);
@@ -38,6 +39,9 @@ class TaskStore {
   /// Saved searches, in display order.
   final List<SavedFilter> filters;
 
+  /// Folders that group lists, filters and trackers, in display order.
+  final List<Folder> folders;
+
   /// False until the local copy has been read.
   final bool loaded;
 
@@ -49,14 +53,25 @@ class TaskStore {
     Iterable<TaskList>? lists,
     Iterable<Tracker>? trackers,
     Iterable<SavedFilter>? filters,
+    Iterable<Folder>? folders,
   }) => TaskStore(
     tasks: tasks ?? this.tasks,
     lists: lists ?? this.lists,
     trackers: trackers ?? this.trackers,
     filters: filters ?? this.filters,
+    folders: folders ?? this.folders,
     loaded: loaded,
     warnDays: warnDays,
   );
+
+  /// The folder with [id], or null if there's none: something filed in a
+  /// folder that has since been deleted counts as in no folder.
+  Folder? folderById(String? id) {
+    for (final folder in folders) {
+      if (folder.id == id) return folder;
+    }
+    return null;
+  }
 
   SavedFilter? filterById(String id) {
     for (final filter in filters) {
@@ -222,6 +237,47 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     });
   }
 
+  /// Adds [folder], or saves changes to it.
+  void saveFolder(Folder folder) {
+    state = state.copyWith(
+      folders: [
+        for (final f in state.folders)
+          if (f.id != folder.id) f,
+        folder,
+      ],
+    );
+    _enqueue(() async {
+      await _workspace?.saveFolder(folder);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  /// Removes the folder with [id]. What was in it stays, in no folder.
+  void deleteFolder(String id) {
+    state = state.copyWith(
+      folders: [
+        for (final f in state.folders)
+          if (f.id != id) f,
+      ],
+      lists: [
+        for (final l in state.lists)
+          l.folder == id ? l.copyWith(folder: null) : l,
+      ],
+      filters: [
+        for (final f in state.filters)
+          f.folder == id ? f.copyWith(folder: null) : f,
+      ],
+      trackers: [
+        for (final t in state.trackers)
+          t.folder == id ? t.copyWith(folder: null) : t,
+      ],
+    );
+    _enqueue(() async {
+      await _workspace?.deleteFolder(id);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
   /// Adds [filter], or saves changes to it.
   void saveFilter(SavedFilter filter) {
     state = state.copyWith(
@@ -274,9 +330,11 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     if (changed != tracker) saveTracker(changed);
   }
 
-  /// Moves the tracker with [id] to [index] in the Health view.
-  void moveTracker(String id, int index) {
-    final changed = geas.moveTracker(state.trackers, id, index);
+  /// Puts the trackers in the order of [ids], as shown in the Health view.
+  void reorderTrackers(List<String> sequence) {
+    final changed = renumberTrackers([
+      for (final id in sequence) ?state.trackerById(id),
+    ]);
     if (changed.isEmpty) return;
     final ids = {for (final t in changed) t.id};
     state = state.copyWith(
@@ -407,6 +465,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
           lists: workspace.lists,
           trackers: workspace.trackers,
           filters: workspace.filters,
+          folders: workspace.folders,
           warnDays: workspace.warnDays,
         );
       });

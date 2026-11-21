@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../archive.dart';
 import '../filter.dart';
+import '../folder.dart';
 import '../matrix.dart';
 import '../repo_config.dart';
 import '../task.dart';
@@ -28,6 +29,7 @@ class Workspace {
   final _lists = <String, TaskList>{};
   final _trackers = <String, Tracker>{};
   final _filters = <String, SavedFilter>{};
+  final _folders = <String, Folder>{};
   final _problems = <String, String>{};
   RepoConfig? _config;
 
@@ -40,6 +42,9 @@ class Workspace {
   List<Tracker> get trackers => sortTrackers(_trackers.values);
 
   Tracker? tracker(String id) => _trackers[id];
+
+  /// Folders, in display order.
+  List<Folder> get folders => sortFolders(_folders.values);
 
   /// Saved searches, in display order.
   List<SavedFilter> get filters => sortFilters(_filters.values);
@@ -62,6 +67,7 @@ class Workspace {
     _lists.clear();
     _trackers.clear();
     _filters.clear();
+    _folders.clear();
     _problems.clear();
     _config = null;
     _index(await _area.readAll());
@@ -106,6 +112,28 @@ class Workspace {
     return _trackers[tracker.id] = Tracker.parse(text);
   }
 
+  Future<Folder> saveFolder(Folder folder) async {
+    final text = folder.encode();
+    await _area.write(folderPath(folder.id), utf8.encode(text));
+    return _folders[folder.id] = Folder.parse(text);
+  }
+
+  /// Removes the folder and takes everything out of it: its lists, filters
+  /// and trackers stay, in no folder.
+  Future<void> deleteFolder(String id) async {
+    for (final list in _lists.values.where((l) => l.folder == id).toList()) {
+      await saveList(list.copyWith(folder: null));
+    }
+    for (final f in _filters.values.where((f) => f.folder == id).toList()) {
+      await saveFilter(f.copyWith(folder: null));
+    }
+    for (final t in _trackers.values.where((t) => t.folder == id).toList()) {
+      await saveTracker(t.copyWith(folder: null));
+    }
+    _folders.remove(id);
+    await _area.delete(folderPath(id));
+  }
+
   Future<SavedFilter> saveFilter(SavedFilter filter) async {
     final text = filter.encode();
     await _area.write(filterPath(filter.id), utf8.encode(text));
@@ -141,10 +169,14 @@ class Workspace {
       final isList = path.startsWith('lists/') && path.endsWith('.yaml');
       final isTracker = isTrackerPath(path);
       final isFilter = isFilterPath(path);
-      if (!isTask && !isList && !isTracker && !isFilter) return;
+      final isFolder = isFolderPath(path);
+      if (!isTask && !isList && !isTracker && !isFilter && !isFolder) return;
       try {
         final text = utf8.decode(bytes);
-        if (isFilter) {
+        if (isFolder) {
+          final folder = Folder.parse(text);
+          _folders[folder.id] = folder;
+        } else if (isFilter) {
           final filter = SavedFilter.parse(text);
           _filters[filter.id] = filter;
         } else if (isTracker) {

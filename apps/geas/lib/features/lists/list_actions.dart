@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../state/store.dart';
+import '../folders/folder_actions.dart';
 import '../tasks/task_view.dart';
 
 /// Colors to pick from for a list.
@@ -59,6 +60,21 @@ class ViewMenu extends ConsumerWidget {
             title: Text('Edit list'),
           ),
         ),
+        if (list.id != inboxId)
+          PopupMenuItem(
+            onTap: () => moveToFolder(
+              context,
+              ref,
+              current: list.folder,
+              onPicked: (folder) => ref
+                  .read(taskStoreProvider.notifier)
+                  .saveList(list.copyWith(folder: folder)),
+            ),
+            child: const ListTile(
+              leading: Icon(Icons.drive_file_move_outlined),
+              title: Text('Move to folder'),
+            ),
+          ),
         if (list.id != inboxId)
           PopupMenuItem(
             onTap: () => _deleteList(context, ref, list),

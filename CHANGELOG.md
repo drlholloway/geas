@@ -6,6 +6,11 @@ GitHub Release notes.
 ## Unreleased
 
 ### Added
+- **Folders:** group lists, saved filters and Health trackers under a
+  name. Each folder is a collapsible section in the sidebar, and Health
+  shows its trackers under the folder's heading. Use **Move to folder**
+  on a list's, filter's or tracker's menu; deleting a folder keeps what
+  was in it. In the CLI, `geas folders`.
 - **Amazon tracking numbers:** numbers starting `TBA` (or `TBC`, `TBM`)
   are recognized as Amazon and open on Amazon's tracking page.
 

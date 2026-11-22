@@ -110,17 +110,24 @@ class Sidebar extends ConsumerWidget {
       if (scaffold != null && scaffold.isDrawerOpen) scaffold.closeDrawer();
     }
 
-    /// A folder's heading, then what's in it unless it's collapsed.
-    List<Widget> folderSection(Folder folder) {
+    /// A folder's heading, then what's in it unless it's collapsed,
+    /// indented by how deep the folder is.
+    List<Widget> folderSection(Folder folder, int depth) {
       final open = !collapsed.contains(folder.id);
       final inLists = lists.where((l) => l.folder == folder.id);
       final inFilters = store.filters.where((f) => f.folder == folder.id);
       final inHealth = store.trackers
           .where((t) => t.folder == folder.id)
           .length;
+      Widget indent(Widget child) => depth == 0
+          ? child
+          : Padding(
+              padding: EdgeInsets.only(left: 16.0 * depth),
+              child: child,
+            );
       return [
         Padding(
-          padding: const EdgeInsets.only(top: 8),
+          padding: EdgeInsets.only(top: 8, left: 16.0 * depth),
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
             onTap: () =>
@@ -155,24 +162,31 @@ class Sidebar extends ConsumerWidget {
           ),
         ),
         if (open) ...[
-          for (final list in inLists) listItem(list),
-          for (final filter in inFilters) filterItem(filter),
+          for (final list in inLists) indent(listItem(list)),
+          for (final filter in inFilters) indent(filterItem(filter)),
           if (inHealth > 0)
-            ListTile(
-              dense: true,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+            indent(
+              ListTile(
+                dense: true,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                leading: const Icon(Icons.medication_outlined, size: 20),
+                title: Text('$inHealth in Health'),
+                onTap: () {
+                  closeDrawer();
+                  context.go('/health');
+                },
               ),
-              leading: const Icon(Icons.medication_outlined, size: 20),
-              title: Text('$inHealth in Health'),
-              onTap: () {
-                closeDrawer();
-                context.go('/health');
-              },
             ),
-          if (inLists.isEmpty && inFilters.isEmpty && inHealth == 0)
+          if (inLists.isEmpty &&
+              inFilters.isEmpty &&
+              inHealth == 0 &&
+              !store.folders.any(
+                (f) => parentFolder(f, store.folders)?.id == folder.id,
+              ))
             Padding(
-              padding: const EdgeInsets.fromLTRB(52, 4, 16, 4),
+              padding: EdgeInsets.fromLTRB(52 + 16.0 * depth, 4, 16, 4),
               child: Text(
                 'Empty. Move a list, filter or tracker here from its menu.',
                 style: theme.textTheme.bodySmall!.copyWith(
@@ -182,6 +196,18 @@ class Sidebar extends ConsumerWidget {
             ),
         ],
       ];
+    }
+
+    /// Every folder's section, leaving out those inside a collapsed one.
+    List<Widget> folderSections() {
+      final sections = <Widget>[];
+      int? hiddenBelow;
+      for (final (:folder, :depth) in folderTree(store.folders)) {
+        if (hiddenBelow != null && depth > hiddenBelow) continue;
+        hiddenBelow = collapsed.contains(folder.id) ? depth : null;
+        sections.addAll(folderSection(folder, depth));
+      }
+      return sections;
     }
 
     final looseFilters = store.filters
@@ -221,7 +247,7 @@ class Sidebar extends ConsumerWidget {
                   count: healthDue,
                 ),
                 page('/search', 'Search', Icons.search),
-                for (final folder in store.folders) ...folderSection(folder),
+                ...folderSections(),
                 if (looseFilters.isNotEmpty) heading('Filters'),
                 for (final filter in looseFilters) filterItem(filter),
                 heading(

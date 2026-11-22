@@ -71,4 +71,38 @@ void main() {
     expect(await geas(['folders', 'put', 'health']), 64);
     await run(['folders', 'put', 'health', 'list:metformin']);
   });
+
+  test('folders nest, and are put in order', () async {
+    await run(['folders', 'add', 'Health']);
+    await run(['folders', 'add', 'Diabetes']);
+    await run(['folders', 'add', 'Builds']);
+    await run(['lists', 'add', 'Meds']);
+    await run(['folders', 'put', 'diabetes', 'meds']);
+
+    expect(await run(['folders', 'nest', 'diabetes', 'health']),
+        'Put Diabetes inside Health.\n');
+    expect(
+        Folder.parse(geas.remote('folders/diabetes.yaml')!).parent, 'health');
+    expect(
+      await run(['folders']),
+      'Health (health)\n'
+      '  Diabetes (diabetes)\n'
+      '    list     Meds\n'
+      'Builds (builds)\n'
+      '  (empty)\n',
+    );
+    expect(await geas(['folders', 'nest', 'health', 'diabetes']), 1);
+    expect('${geas.err}', contains('can\'t go inside itself'));
+
+    expect(await run(['folders', 'move', 'builds', '1']), 'Builds, Health\n');
+    expect(await run(['folders']), startsWith('Builds (builds)\n'));
+
+    // Removing a folder moves what was in it up a level.
+    await run(['folders', 'nest', 'health', 'builds']);
+    await run(['folders', 'rm', 'health']);
+    expect(
+        Folder.parse(geas.remote('folders/diabetes.yaml')!).parent, 'builds');
+    await run(['folders', 'unnest', 'diabetes']);
+    expect(Folder.parse(geas.remote('folders/diabetes.yaml')!).parent, isNull);
+  });
 }

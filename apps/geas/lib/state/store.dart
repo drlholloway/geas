@@ -268,24 +268,49 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     });
   }
 
-  /// Removes the folder with [id]. What was in it stays, in no folder.
-  void deleteFolder(String id) {
+  /// Puts sibling folders in the order of [ids].
+  void reorderFolders(List<String> ids) {
+    final changed = renumberFolders([
+      for (final id in ids) ?state.folderById(id),
+    ]);
+    if (changed.isEmpty) return;
+    final changedIds = {for (final f in changed) f.id};
     state = state.copyWith(
       folders: [
         for (final f in state.folders)
-          if (f.id != id) f,
+          if (!changedIds.contains(f.id)) f,
+        ...changed,
+      ],
+    );
+    _enqueue(() async {
+      for (final folder in changed) {
+        await _workspace?.saveFolder(folder);
+      }
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  /// Removes the folder with [id]. What was in it stays, moved up to the
+  /// folder it was in, or to no folder.
+  void deleteFolder(String id) {
+    final gone = state.folderById(id);
+    final up = gone == null ? null : parentFolder(gone, state.folders)?.id;
+    state = state.copyWith(
+      folders: [
+        for (final f in state.folders)
+          if (f.id != id) f.parent == id ? f.copyWith(parent: up) : f,
       ],
       lists: [
         for (final l in state.lists)
-          l.folder == id ? l.copyWith(folder: null) : l,
+          l.folder == id ? l.copyWith(folder: up) : l,
       ],
       filters: [
         for (final f in state.filters)
-          f.folder == id ? f.copyWith(folder: null) : f,
+          f.folder == id ? f.copyWith(folder: up) : f,
       ],
       trackers: [
         for (final t in state.trackers)
-          t.folder == id ? t.copyWith(folder: null) : t,
+          t.folder == id ? t.copyWith(folder: up) : t,
       ],
     );
     _enqueue(() async {

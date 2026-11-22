@@ -6,6 +6,11 @@ GitHub Release notes.
 ## Unreleased
 
 ### Added
+- **Folders inside folders:** **Move into folder** on a folder's menu
+  puts it inside another. Deleting a folder now moves what was in it up
+  one level. **Reorder folders** lets you drag the folders at one level
+  into order, and the sidebar remembers which folders you closed. In the
+  CLI, `geas folders nest`, `unnest` and `move`.
 - **Sort a list by hand:** choose **Sort by hand** in a list's menu and
   drag its tasks into the order you want. New tasks go on top. Switch
   back to sorting by due date at any time. In the CLI,

@@ -1,16 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geas_core/geas_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../state/session.dart';
 import '../../state/store.dart';
 
-/// Folders collapsed in the sidebar, by id. Kept while the app runs.
+/// Folders collapsed in the sidebar, by id. Kept in this device's config,
+/// so they're still closed the next time the app opens.
 class CollapsedFolders extends Notifier<Set<String>> {
   @override
-  Set<String> build() => const {};
+  Set<String> build() => {
+    ...?ref.watch(configProvider.select((c) => c.value?.collapsedFolders)),
+  };
 
-  void toggle(String id) =>
-      state = state.contains(id) ? ({...state}..remove(id)) : {...state, id};
+  void toggle(String id) {
+    final next = state.contains(id) ? ({...state}..remove(id)) : {...state, id};
+    state = next;
+    final config = ref.read(configProvider).value;
+    if (config != null) {
+      unawaited(
+        ref
+            .read(configProvider.notifier)
+            .save(config.copyWith(collapsedFolders: next.toList()..sort())),
+      );
+    }
+  }
 }
 
 final collapsedFoldersProvider =
@@ -39,19 +55,28 @@ Future<void> moveToFolder(
   WidgetRef ref, {
   required String? current,
   required void Function(String? folderId) onPicked,
+  Set<String> except = const {},
+  String none = 'No folder',
 }) async {
-  final folders = ref.read(taskStoreProvider).folders;
+  final all = ref.read(taskStoreProvider).folders;
+  // Leaving out [except], as a folder can't go inside itself.
+  final tree = [
+    for (final node in folderTree(all))
+      if (!except.contains(node.folder.id)) node,
+  ];
+  final folders = [for (final node in tree) node.folder];
   // The folder's id, '' for none, or null for a new one.
   final choice = await showDialog<(String?,)>(
     context: context,
     builder: (context) => SimpleDialog(
       title: const Text('Move to folder'),
       children: [
-        for (final folder in folders)
+        for (final (:folder, :depth) in tree)
           SimpleDialogOption(
             onPressed: () => Navigator.pop(context, (folder.id,)),
             child: Row(
               children: [
+                SizedBox(width: 20.0 * depth),
                 Icon(
                   folder.id == current ? Icons.check : Icons.folder_outlined,
                   size: 20,
@@ -74,11 +99,11 @@ Future<void> moveToFolder(
         if (current != null && folders.any((f) => f.id == current))
           SimpleDialogOption(
             onPressed: () => Navigator.pop(context, ('',)),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.folder_off_outlined, size: 20),
-                SizedBox(width: 12),
-                Text('No folder'),
+                const Icon(Icons.folder_off_outlined, size: 20),
+                const SizedBox(width: 12),
+                Text(none),
               ],
             ),
           ),
@@ -153,12 +178,48 @@ class FolderMenu extends ConsumerWidget {
     }
   }
 
+  /// Puts this folder inside another, or back at the top level.
+  Future<void> _move(BuildContext context, WidgetRef ref) {
+    final store = ref.read(taskStoreProvider);
+    return moveToFolder(
+      context,
+      ref,
+      current: parentFolder(folder, store.folders)?.id,
+      except: {folder.id, ...foldersInside(folder.id, store.folders)},
+      none: 'Top level',
+      onPicked: (parent) => ref
+          .read(taskStoreProvider.notifier)
+          .saveFolder(folder.copyWith(parent: parent)),
+    );
+  }
+
+  /// Shows this folder and the ones beside it, to drag into order.
+  Future<void> _reorder(BuildContext context, WidgetRef ref) =>
+      showDialog<void>(
+        context: context,
+        builder: (context) => _ReorderFoldersDialog(folder: folder),
+      );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) => PopupMenuButton<void>(
     tooltip: '${folder.name} folder options',
     iconSize: 18,
     padding: EdgeInsets.zero,
     itemBuilder: (_) => [
+      PopupMenuItem(
+        onTap: () => _move(context, ref),
+        child: const ListTile(
+          leading: Icon(Icons.drive_file_move_outlined),
+          title: Text('Move into folder'),
+        ),
+      ),
+      PopupMenuItem(
+        onTap: () => _reorder(context, ref),
+        child: const ListTile(
+          leading: Icon(Icons.swap_vert),
+          title: Text('Reorder folders'),
+        ),
+      ),
       PopupMenuItem(
         onTap: () => _rename(context, ref),
         child: const ListTile(
@@ -175,6 +236,63 @@ class FolderMenu extends ConsumerWidget {
       ),
     ],
   );
+}
+
+/// [folder] and the folders at its level, each with a handle to drag it
+/// into place.
+class _ReorderFoldersDialog extends ConsumerWidget {
+  const _ReorderFoldersDialog({required this.folder});
+
+  final Folder folder;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final all = ref.watch(taskStoreProvider).folders;
+    final parent = parentFolder(folder, all)?.id;
+    final siblings = sortFolders(
+      all.where((f) => parentFolder(f, all)?.id == parent),
+    );
+    return AlertDialog(
+      title: const Text('Reorder folders'),
+      content: SizedBox(
+        width: 320,
+        child: ReorderableListView(
+          shrinkWrap: true,
+          buildDefaultDragHandles: false,
+          onReorderItem: (from, to) {
+            final ids = [for (final f in siblings) f.id];
+            ids.insert(to, ids.removeAt(from));
+            ref.read(taskStoreProvider.notifier).reorderFolders(ids);
+          },
+          children: [
+            for (final (index, f) in siblings.indexed)
+              ListTile(
+                key: ValueKey(f.id),
+                dense: true,
+                leading: const Icon(Icons.folder_outlined, size: 20),
+                title: Text(f.name),
+                trailing: ReorderableDragStartListener(
+                  index: index,
+                  child: Tooltip(
+                    message: 'Drag ${f.name}',
+                    child: const MouseRegion(
+                      cursor: SystemMouseCursors.grab,
+                      child: Icon(Icons.drag_handle),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Done'),
+        ),
+      ],
+    );
+  }
 }
 
 class _FolderNameDialog extends StatefulWidget {

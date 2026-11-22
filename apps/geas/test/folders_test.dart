@@ -174,6 +174,95 @@ void main() {
     expect(TaskList.parse(remote('lists/pedals.yaml')).folder, isNull);
   });
 
+  testWidgets('folders nest, reorder by dragging, and stay collapsed', (
+    tester,
+  ) async {
+    // Tall enough that the whole sidebar is on screen.
+    await app.pump(tester, size: const Size(1200, 1400));
+    await addFolder(tester, 'Medical');
+    await addFolder(tester, 'Diabetes');
+    await addFolder(tester, 'Builds');
+    await moveList(tester, 'Pedals', 'Diabetes');
+
+    // Diabetes goes inside Medical; it can't go inside itself.
+    await tester.tap(find.byTooltip('Diabetes folder options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Move into folder'));
+    await tester.pumpAndSettle();
+    final dialog = find.byType(SimpleDialog);
+    expect(
+      find.descendant(of: dialog, matching: find.text('Diabetes')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.descendant(of: dialog, matching: find.text('Medical')),
+    );
+    await tester.pumpAndSettle();
+    expect(top(inSidebar('Medical')), lessThan(top(inSidebar('Diabetes'))));
+    expect(top(inSidebar('Diabetes')), lessThan(top(inSidebar('Pedals'))));
+    expect(top(inSidebar('Pedals')), lessThan(top(inSidebar('Builds'))));
+    expect(
+      tester.getTopLeft(inSidebar('Diabetes')).dx,
+      greaterThan(tester.getTopLeft(inSidebar('Medical')).dx),
+    );
+    await sync(tester);
+    expect(Folder.parse(remote('folders/diabetes.yaml')).parent, 'medical');
+
+    // Collapsing Medical hides everything inside it, and that's remembered.
+    await tester.tap(inSidebar('Medical'));
+    await tester.pumpAndSettle();
+    expect(inSidebar('Diabetes'), findsNothing);
+    expect(inSidebar('Pedals'), findsNothing);
+    expect(app.config.config!.collapsedFolders, ['medical']);
+    expect(app.config.config!.toJson()['collapsed_folders'], ['medical']);
+
+    // Builds is dragged above Medical.
+    await tester.tap(find.byTooltip('Builds folder options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reorder folders'));
+    await tester.pumpAndSettle();
+    final drag = await tester.startGesture(
+      tester.getCenter(find.byTooltip('Drag Builds')),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    for (var i = 0; i < 8; i++) {
+      await drag.moveBy(const Offset(0, -10));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    await drag.up();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(top(inSidebar('Builds')), lessThan(top(inSidebar('Medical'))));
+    await sync(tester);
+    expect(Folder.parse(remote('folders/builds.yaml')).order, 1);
+    expect(Folder.parse(remote('folders/medical.yaml')).order, 2);
+  });
+
+  testWidgets('a folder closed last time starts closed', (tester) async {
+    app.github.push({
+      folderPath('builds'): utf8.encode(newFolder('Builds', const []).encode()),
+      'lists/pedals.yaml': utf8.encode(
+        const TaskList(
+          id: 'pedals',
+          name: 'Pedals',
+          order: 1,
+          folder: 'builds',
+        ).encode(),
+      ),
+    });
+    app.config.config = app.config.config!.copyWith(
+      collapsedFolders: ['builds'],
+    );
+    await app.pump(tester);
+    expect(inSidebar('Builds'), findsOneWidget);
+    expect(inSidebar('Pedals'), findsNothing);
+    await tester.tap(inSidebar('Builds'));
+    await tester.pumpAndSettle();
+    expect(inSidebar('Pedals'), findsOneWidget);
+    expect(app.config.config!.collapsedFolders, isEmpty);
+  });
+
   testWidgets('something filed in a folder that\'s gone shows as loose', (
     tester,
   ) async {

@@ -118,17 +118,23 @@ class Workspace {
     return _folders[folder.id] = Folder.parse(text);
   }
 
-  /// Removes the folder and takes everything out of it: its lists, filters
-  /// and trackers stay, in no folder.
+  /// Removes the folder and takes everything out of it: its lists, filters,
+  /// trackers and the folders inside it stay, moved up to the folder it was
+  /// in, or to no folder if it was at the top level.
   Future<void> deleteFolder(String id) async {
+    final gone = _folders[id];
+    final up = gone == null ? null : parentFolder(gone, _folders.values)?.id;
     for (final list in _lists.values.where((l) => l.folder == id).toList()) {
-      await saveList(list.copyWith(folder: null));
+      await saveList(list.copyWith(folder: up));
     }
     for (final f in _filters.values.where((f) => f.folder == id).toList()) {
-      await saveFilter(f.copyWith(folder: null));
+      await saveFilter(f.copyWith(folder: up));
     }
     for (final t in _trackers.values.where((t) => t.folder == id).toList()) {
-      await saveTracker(t.copyWith(folder: null));
+      await saveTracker(t.copyWith(folder: up));
+    }
+    for (final f in _folders.values.where((f) => f.parent == id).toList()) {
+      await saveFolder(f.copyWith(parent: up));
     }
     _folders.remove(id);
     await _area.delete(folderPath(id));

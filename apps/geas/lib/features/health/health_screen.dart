@@ -94,11 +94,12 @@ class HealthScreen extends ConsumerWidget {
     final narrow = MediaQuery.sizeOf(context).width < sidebarBreakpoint;
     final theme = Theme.of(context);
     final trackers = store.trackers;
-    // Those in no folder first, then each folder's, in the folders' order.
+    // Those in no folder first, then each folder's, in the order the
+    // sidebar shows the folders.
     Folder? folderOf(Tracker tracker) => store.folderById(tracker.folder);
     final shown = [
       ...trackers.where((t) => folderOf(t) == null),
-      for (final folder in store.folders)
+      for (final (:folder, depth: _) in folderTree(store.folders))
         ...trackers.where((t) => t.folder == folder.id),
     ];
 
@@ -177,7 +178,7 @@ class HealthScreen extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    folder.name,
+                                    folderPathName(folder, store.folders),
                                     style: theme.textTheme.titleSmall!.copyWith(
                                       color: theme.colorScheme.primary,
                                     ),

@@ -33,6 +33,7 @@ class AppConfig {
     this.backgroundSync = true,
     this.syncMinutes = defaultSyncMinutes,
     this.reminders = false,
+    this.collapsedFolders = const [],
   });
 
   factory AppConfig.fromJson(Map<String, Object?> json) => AppConfig(
@@ -48,6 +49,10 @@ class AppConfig {
       _ => defaultSyncMinutes,
     },
     reminders: json['reminders'] as bool? ?? false,
+    collapsedFolders: switch (json['collapsed_folders']) {
+      final List<Object?> ids => [for (final id in ids) '$id'],
+      _ => const [],
+    },
   );
 
   final RepoRef repo;
@@ -69,6 +74,9 @@ class AppConfig {
   /// medication or sensor is due again.
   final bool reminders;
 
+  /// The ids of the folders closed in this device's sidebar.
+  final List<String> collapsedFolders;
+
   /// A copy with the given fields replaced. Pass null for [tokenExpires] to
   /// clear it.
   AppConfig copyWith({
@@ -76,6 +84,7 @@ class AppConfig {
     bool? backgroundSync,
     int? syncMinutes,
     bool? reminders,
+    List<String>? collapsedFolders,
   }) => AppConfig(
     repo: repo,
     device: device,
@@ -85,6 +94,7 @@ class AppConfig {
     backgroundSync: backgroundSync ?? this.backgroundSync,
     syncMinutes: syncMinutes ?? this.syncMinutes,
     reminders: reminders ?? this.reminders,
+    collapsedFolders: collapsedFolders ?? this.collapsedFolders,
   );
 
   Map<String, Object?> toJson() => {
@@ -95,6 +105,7 @@ class AppConfig {
     if (!backgroundSync) 'background_sync': false,
     if (syncMinutes != defaultSyncMinutes) 'sync_minutes': syncMinutes,
     if (reminders) 'reminders': true,
+    if (collapsedFolders.isNotEmpty) 'collapsed_folders': collapsedFolders,
   };
 }
 

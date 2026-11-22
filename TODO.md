@@ -39,7 +39,8 @@ Plan and status. Check items off as they land; move anything cut from v1 to
 
 - **Categorization (2026-11-20):** tags, plus folders. A folder groups
   lists, saved filters and Health trackers; a thing is in at most one
-  folder, and folders don't nest. Membership is an optional `folder` key
+  folder. Folders nest (2026-11-22): a folder's optional `parent` names
+  the folder it's inside. Membership is an optional `folder` key
   on each member, so moving one thing edits one file and two devices
   filing different things never collide. Something filed in a folder that
   no longer exists counts as in none.
@@ -52,7 +53,7 @@ geas-data/
   lists/<id>.yaml           id, name, color, order; optional folder, and
                             sort: manual
   filters/<id>.yaml         a saved search: id, name, query, order
-  folders/<id>.yaml         a folder: id, name, order
+  folders/<id>.yaml         a folder: id, name, order; optional parent
   trackers/<id>.md          a medication or sensor and every time it was logged
   tasks/<id>.md             open and recently completed tasks
   archive/<yyyy>/<id>.md    tasks completed more than 30 days ago
@@ -501,6 +502,14 @@ how often.
       with no position yet follow the placed ones in due order. "Sort by
       hand" in the list's menu, `geas lists sort` and `geas move`
 
+- [x] Folders, the rest. Nesting: an optional `parent` key; `folderTree`
+      flattens the tree, and a parent that's missing or would make a loop
+      leaves the folder at the top. Deleting a folder moves what was in
+      it, folders included, up one level. "Move into folder" on a folder's
+      menu. Reordering: "Reorder folders" opens the folders at that level
+      to drag into order. Collapsed folders are remembered per device in
+      `config.json`. `geas folders nest`, `unnest` and `move`
+
 ## Later
 
 - Reminders: syncing dismissals between devices, a choice of time for
@@ -511,8 +520,6 @@ how often.
 - Sign in through a registered Geas GitHub App (device flow): no token to
   copy, but an app to register and tokens to refresh every 8 hours
 - Habits and Pomodoro
-- Folders: nesting, reordering folders by drag, and remembering which are
-  collapsed between runs
 - OAuth device flow instead of a pasted token
 - Live package status pulled from carriers or a tracking aggregator,
   filling in `status` and `eta` automatically. With no server, each device

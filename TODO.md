@@ -388,6 +388,7 @@ Orders and packages:
       tracking numbers
 - [x] Tag `v0.4.0`: recurring tasks, quick add, search and filters,
       reminders, dose amounts, the Health widget, background sync
+- [x] Tag `v0.5.0`: folders, Amazon tracking numbers
 
 ## Phase 7: Health tracking (2026-11-15)
 

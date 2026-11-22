@@ -6,6 +6,11 @@ GitHub Release notes.
 ## Unreleased
 
 ### Added
+- **Reminders that follow you:** tapping a reminder dismisses it on your
+  other devices too, once they sync, and opens the task or tracker.
+  Finishing the task or logging the dose clears its reminder everywhere.
+  Settings has a time for tasks with no time, in place of the fixed
+  9:00. On Linux, reminders now arrive with Geas closed.
 - **Syncing while closed on macOS and Linux:** with **Sync on its own**
   on, Geas now syncs in the background on the desktop too. On macOS
   (13 or later) it appears under Login Items & Extensions in System

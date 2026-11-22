@@ -50,6 +50,7 @@ Plan and status. Check items off as they land; move anything cut from v1 to
 ```
 geas-data/
   geas.yaml                 format: 1
+  dismissed.yaml            reminders acknowledged on any device
   lists/<id>.yaml           id, name, color, order; optional folder, and
                             sort: manual
   filters/<id>.yaml         a saved search: id, name, query, order
@@ -522,10 +523,24 @@ how often.
       (`LinuxSystemdScheduler`), not yet tried on a real Linux desktop.
       Only release builds schedule themselves
 
+- [x] Reminders, the rest. A per-device time for tasks with no time
+      (`reminder_minutes` in `config.json`, a time picker in Settings).
+      Dismissals: tapping a reminder records it in `dismissed.yaml`
+      (`Dismissals`: reminder key to the time of the latest one
+      dismissed; sync pools both sides, the later winning) and opens the
+      task or tracker; each device, when it next sets its reminders, takes
+      down notifications that no longer stand (`standingReminders`): the
+      task was finished, the dose logged, or another device dismissed it.
+      Linux while closed: the app asks systemd to start it with no window
+      when the next reminder is due (`LinuxReminderWake`, a one-off
+      `geas-reminder` timer), and each start shows what came due since the
+      last; not yet tried on a real Linux desktop
+
 ## Later
 
-- Reminders: syncing dismissals between devices, a choice of time for
-  tasks with no time, and Linux reminders while Geas is closed
+- Reminders: a Dismiss button on the notification itself (today only a
+  tap counts; swiping one away isn't reported to apps), and clearing
+  notifications on Linux
 - Calendar view
 - Sign in through a registered Geas GitHub App (device flow): no token to
   copy, but an app to register and tokens to refresh every 8 hours

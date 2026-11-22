@@ -4,6 +4,7 @@ import '../archive.dart';
 import '../filter.dart';
 import '../folder.dart';
 import '../matrix.dart';
+import '../reminder.dart';
 import '../repo_config.dart';
 import '../task.dart';
 import '../task_list.dart';
@@ -32,6 +33,7 @@ class Workspace {
   final _folders = <String, Folder>{};
   final _problems = <String, String>{};
   RepoConfig? _config;
+  var _dismissals = const Dismissals();
 
   Iterable<Task> get tasks => _tasks.values;
 
@@ -42,6 +44,14 @@ class Workspace {
   List<Tracker> get trackers => sortTrackers(_trackers.values);
 
   Tracker? tracker(String id) => _trackers[id];
+
+  /// Reminders dismissed on any device.
+  Dismissals get dismissals => _dismissals;
+
+  Future<void> saveDismissals(Dismissals dismissals) async {
+    _dismissals = dismissals;
+    await _area.write(dismissedPath, utf8.encode(dismissals.encode()));
+  }
 
   /// Folders, in display order.
   List<Folder> get folders => sortFolders(_folders.values);
@@ -70,6 +80,7 @@ class Workspace {
     _folders.clear();
     _problems.clear();
     _config = null;
+    _dismissals = const Dismissals();
     _index(await _area.readAll());
   }
 
@@ -164,6 +175,14 @@ class Workspace {
       if (path == repoConfigPath) {
         try {
           _config = RepoConfig.parse(utf8.decode(bytes));
+        } on FormatException catch (e) {
+          _problems[path] = e.message;
+        }
+        return;
+      }
+      if (path == dismissedPath) {
+        try {
+          _dismissals = Dismissals.parse(utf8.decode(bytes));
         } on FormatException catch (e) {
           _problems[path] = e.message;
         }

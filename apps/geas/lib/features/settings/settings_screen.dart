@@ -141,9 +141,9 @@ class SettingsScreen extends ConsumerWidget {
               secondary: const Icon(Icons.notifications_outlined),
               title: const Text('Remind me'),
               subtitle: const Text(
-                'A notification when a task is due (at 9:00 if it has no '
-                'time), and when a medication or sensor is due again. Set '
-                'for this device only.',
+                'A notification when a task is due, and when a medication '
+                'or sensor is due again. Set for this device only. Tapping '
+                'one dismisses it on your other devices too.',
               ),
               value: config.reminders,
               onChanged: (on) async {
@@ -164,6 +164,35 @@ class SettingsScreen extends ConsumerWidget {
                     .save(config.copyWith(reminders: on));
               },
             ),
+            if (config.reminders)
+              ListTile(
+                leading: const Icon(Icons.schedule),
+                title: const Text('Tasks with no time'),
+                subtitle: const Text('When to remind you on the day.'),
+                trailing: TextButton(
+                  onPressed: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay(
+                        hour: config.reminderMinutes ~/ 60,
+                        minute: config.reminderMinutes % 60,
+                      ),
+                    );
+                    if (picked == null) return;
+                    await ref
+                        .read(configProvider.notifier)
+                        .save(
+                          config.copyWith(
+                            reminderMinutes: picked.hour * 60 + picked.minute,
+                          ),
+                        );
+                  },
+                  child: Text(
+                    '${(config.reminderMinutes ~/ 60).toString().padLeft(2, '0')}:'
+                    '${(config.reminderMinutes % 60).toString().padLeft(2, '0')}',
+                  ),
+                ),
+              ),
           ],
           heading('Token'),
           ListTile(

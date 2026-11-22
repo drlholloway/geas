@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:geas_core/geas_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'background_sync.dart';
 import 'environment.dart';
+import 'reminders.dart';
 
 /// The argument that starts Geas with no window, to sync and quit. The
 /// macOS launch agent and the Linux systemd timer pass it.
@@ -74,7 +76,11 @@ Future<BackgroundRun> runDesktopBackgroundSync(
   if (lock == null) return BackgroundRun.appOpen;
   try {
     final config = await env.config.load();
-    if (config == null || !config.backgroundSync) return BackgroundRun.off;
+    if (config == null) return BackgroundRun.off;
+    if (!config.backgroundSync) {
+      await _refreshReminders(env, config, clock());
+      return BackgroundRun.off;
+    }
 
     final record = File(p.join(supportDir, 'background.json'));
     final now = clock();
@@ -86,7 +92,10 @@ Future<BackgroundRun> runDesktopBackgroundSync(
       final due = last.add(
         Duration(minutes: config.syncMinutes) - const Duration(minutes: 1),
       );
-      if (now.isBefore(due) && !now.isBefore(last)) return BackgroundRun.notDue;
+      if (now.isBefore(due) && !now.isBefore(last)) {
+        await _refreshReminders(env, config, now);
+        return BackgroundRun.notDue;
+      }
     } on Object {
       // Never ran, or unreadable: run now.
     }
@@ -98,6 +107,27 @@ Future<BackgroundRun> runDesktopBackgroundSync(
   } finally {
     await lock.release();
   }
+}
+
+/// Sets this device's reminders from its copy as it stands, without
+/// syncing: what a start does when no sync is due, as when systemd woke
+/// Geas on Linux to show a reminder.
+Future<void> _refreshReminders(
+  AppEnvironment env,
+  AppConfig config,
+  DateTime now,
+) async {
+  if (!config.reminders || env.reminders == null) return;
+  final workspace = await Workspace.load(env.openStore(config.repo).working);
+  await scheduleReminders(
+    env.reminders,
+    on: true,
+    tasks: workspace.tasks,
+    trackers: workspace.trackers,
+    now: now,
+    dayMinutes: config.reminderMinutes,
+    dismissed: workspace.dismissals,
+  );
 }
 
 /// macOS: the launch agent inside the app bundle, turned on and off through

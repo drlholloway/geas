@@ -38,6 +38,7 @@ class ConfigNotifier extends AsyncNotifier<AppConfig?> {
         syncMinutes: before?.syncMinutes ?? defaultSyncMinutes,
         reminders: before?.reminders ?? false,
         collapsedFolders: before?.collapsedFolders ?? const [],
+        reminderMinutes: before?.reminderMinutes ?? reminderHour * 60,
       ),
     );
   }

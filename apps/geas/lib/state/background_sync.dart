@@ -125,6 +125,8 @@ Future<BackgroundSync> backgroundSync(
   await scheduleReminders(
     env.reminders,
     on: config.reminders,
+    dayMinutes: config.reminderMinutes,
+    dismissed: workspace.dismissals,
     tasks: workspace.tasks,
     trackers: workspace.trackers,
     now: clock(),

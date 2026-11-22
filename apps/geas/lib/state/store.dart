@@ -18,6 +18,7 @@ class TaskStore {
     Iterable<Tracker> trackers = const [],
     Iterable<SavedFilter> filters = const [],
     Iterable<Folder> folders = const [],
+    this.dismissals = const Dismissals(),
     this.loaded = true,
     this.warnDays = defaultWarnDays,
   }) : lists = withInbox(lists),
@@ -42,6 +43,9 @@ class TaskStore {
   /// Folders that group lists, filters and trackers, in display order.
   final List<Folder> folders;
 
+  /// Reminders dismissed on any device.
+  final Dismissals dismissals;
+
   /// False until the local copy has been read.
   final bool loaded;
 
@@ -54,12 +58,14 @@ class TaskStore {
     Iterable<Tracker>? trackers,
     Iterable<SavedFilter>? filters,
     Iterable<Folder>? folders,
+    Dismissals? dismissals,
   }) => TaskStore(
     tasks: tasks ?? this.tasks,
     lists: lists ?? this.lists,
     trackers: trackers ?? this.trackers,
     filters: filters ?? this.filters,
     folders: folders ?? this.folders,
+    dismissals: dismissals ?? this.dismissals,
     loaded: loaded,
     warnDays: warnDays,
   );
@@ -249,6 +255,18 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
         await workspace.saveTask(task, now: now);
       }
       await workspace.deleteList(id);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  /// Records that the reminder for [key] at [at] was acknowledged here, so
+  /// every device clears it.
+  void dismissReminder(String key, DateTime at) {
+    final dismissals = state.dismissals.dismiss(key, at, now: _now);
+    if (dismissals == state.dismissals) return;
+    state = state.copyWith(dismissals: dismissals);
+    _enqueue(() async {
+      await _workspace?.saveDismissals(dismissals);
       if (ref.mounted) ref.read(syncProvider.notifier).schedule();
     });
   }
@@ -507,6 +525,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
           trackers: workspace.trackers,
           filters: workspace.filters,
           folders: workspace.folders,
+          dismissals: workspace.dismissals,
           warnDays: workspace.warnDays,
         );
       });

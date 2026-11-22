@@ -53,6 +53,23 @@ void main() {
       },
     );
 
+    test('still sets reminders when no sync is due', () async {
+      final reminders = app.reminders = FakeReminders();
+      app.config.config = app.config.config!.copyWith(reminders: true);
+      await run(now);
+      final after = reminders.schedules.length;
+      expect(
+        await run(now.add(const Duration(minutes: 5))),
+        BackgroundRun.notDue,
+      );
+      expect(reminders.schedules, hasLength(after + 1));
+      expect(reminders.titles, contains('Call the dentist'));
+
+      app.config.config = app.config.config!.copyWith(backgroundSync: false);
+      expect(await run(now), BackgroundRun.off);
+      expect(reminders.schedules, hasLength(after + 2));
+    });
+
     test('releases its lock, so the next start can run', () async {
       await run(now);
       final lock = await AppLock.take(dir.path);

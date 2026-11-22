@@ -7,6 +7,7 @@ import 'package:yaml_edit/yaml_edit.dart';
 import '../archive.dart';
 import '../filter.dart';
 import '../folder.dart';
+import '../reminder.dart';
 import '../task.dart';
 import '../task_list.dart';
 import '../tracker.dart';
@@ -39,6 +40,8 @@ class TreeMerge {
 ///   conflict.
 /// - Trackers merge their settings like lists and their logs as sets of
 ///   lines, so times logged on two devices are all kept.
+/// - Dismissed reminders (`dismissed.yaml`) are pooled, the later dismissal
+///   of each winning.
 /// - Anything else changed on both sides keeps the remote and records the
 ///   local.
 ///
@@ -79,6 +82,8 @@ TreeMerge mergeTrees({
       kept = _mergeList(
           (eb?.isFilter ?? false) ? eb : null, el, er, now, conflicts,
           parse: SavedFilter.parse);
+    } else if (el.path == dismissedPath && _dismissals(el, er) != null) {
+      kept = _dismissals(el, er);
     } else if (el.isFolder && er.isFolder) {
       kept = _mergeList(
           (eb?.isFolder ?? false) ? eb : null, el, er, now, conflicts,
@@ -266,6 +271,18 @@ _Entry _mergeList(
     isFilter: remote.isFilter,
     isFolder: remote.isFolder,
   );
+}
+
+/// Both sides' dismissed reminders in one file, or null if either doesn't
+/// parse.
+_Entry? _dismissals(_Entry local, _Entry remote) {
+  try {
+    final merged = Dismissals.merge(
+        Dismissals.parse(local.text), Dismissals.parse(remote.text));
+    return _Entry(remote.path, utf8.encode(merged.encode()));
+  } on FormatException {
+    return null;
+  }
 }
 
 _Entry _mergeTracker(

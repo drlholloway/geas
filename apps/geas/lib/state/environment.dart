@@ -36,6 +36,7 @@ class AppConfig {
     this.syncMinutes = defaultSyncMinutes,
     this.reminders = false,
     this.collapsedFolders = const [],
+    this.reminderMinutes = reminderHour * 60,
   });
 
   factory AppConfig.fromJson(Map<String, Object?> json) => AppConfig(
@@ -54,6 +55,10 @@ class AppConfig {
     collapsedFolders: switch (json['collapsed_folders']) {
       final List<Object?> ids => [for (final id in ids) '$id'],
       _ => const [],
+    },
+    reminderMinutes: switch (json['reminder_minutes']) {
+      final int minutes when minutes >= 0 && minutes < 24 * 60 => minutes,
+      _ => reminderHour * 60,
     },
   );
 
@@ -76,6 +81,10 @@ class AppConfig {
   /// medication or sensor is due again.
   final bool reminders;
 
+  /// When this device announces a task that has a due date but no time,
+  /// in minutes past midnight.
+  final int reminderMinutes;
+
   /// The ids of the folders closed in this device's sidebar.
   final List<String> collapsedFolders;
 
@@ -87,6 +96,7 @@ class AppConfig {
     int? syncMinutes,
     bool? reminders,
     List<String>? collapsedFolders,
+    int? reminderMinutes,
   }) => AppConfig(
     repo: repo,
     device: device,
@@ -97,6 +107,7 @@ class AppConfig {
     syncMinutes: syncMinutes ?? this.syncMinutes,
     reminders: reminders ?? this.reminders,
     collapsedFolders: collapsedFolders ?? this.collapsedFolders,
+    reminderMinutes: reminderMinutes ?? this.reminderMinutes,
   );
 
   Map<String, Object?> toJson() => {
@@ -108,6 +119,8 @@ class AppConfig {
     if (syncMinutes != defaultSyncMinutes) 'sync_minutes': syncMinutes,
     if (reminders) 'reminders': true,
     if (collapsedFolders.isNotEmpty) 'collapsed_folders': collapsedFolders,
+    if (reminderMinutes != reminderHour * 60)
+      'reminder_minutes': reminderMinutes,
   };
 }
 
@@ -233,7 +246,12 @@ class AppEnvironment {
           ? LinuxSystemdScheduler()
           : null,
       supportDir: dir,
-      reminders: LocalNotifications(),
+      reminders: LocalNotifications(
+        supportDir: dir,
+        linuxWake: kReleaseMode && Platform.isLinux
+            ? LinuxReminderWake()
+            : null,
+      ),
       version: (await PackageInfo.fromPlatform()).version,
     );
   }

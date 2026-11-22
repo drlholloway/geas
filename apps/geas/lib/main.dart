@@ -96,7 +96,10 @@ class _GeasAppState extends ConsumerState<GeasApp> {
         routerConfig: _router,
         builder: (context, child) => HomeWidgetDriver(
           router: _router,
-          child: ReminderDriver(child: SyncDriver(child: child!)),
+          child: ReminderDriver(
+            router: _router,
+            child: SyncDriver(child: child!),
+          ),
         ),
       );
     }

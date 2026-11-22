@@ -5,6 +5,14 @@ GitHub Release notes.
 
 ## Unreleased
 
+## 0.5.0 — 2026-11-22
+
+Folders that group lists, saved filters and Health trackers, and Amazon
+tracking numbers.
+
+Update every device together. 0.4.0 ignores folders, so everything looks
+unfiled there, and it can't read a task that has an Amazon package.
+
 ### Added
 - **Folders:** group lists, saved filters and Health trackers under a
   name. Each folder is a collapsible section in the sidebar, and Health

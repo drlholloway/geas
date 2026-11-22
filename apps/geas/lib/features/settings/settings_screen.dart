@@ -106,11 +106,7 @@ class SettingsScreen extends ConsumerWidget {
             secondary: const Icon(Icons.autorenew),
             title: const Text('Sync on its own'),
             subtitle: Text(
-              env.backgroundScheduler == null
-                  ? 'While Geas is open.'
-                  : 'In the background, even when Geas is closed, whenever '
-                        'there\'s a network. Android may put a sync off to '
-                        'save battery.',
+              env.backgroundScheduler?.where ?? 'While Geas is open.',
             ),
             value: config.backgroundSync,
             onChanged: (on) => ref

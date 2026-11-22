@@ -510,12 +510,22 @@ how often.
       to drag into order. Collapsed folders are remembered per device in
       `config.json`. `geas folders nest`, `unnest` and `move`
 
+- [x] Syncing on macOS and Linux while Geas is closed. Geas started
+      with `--background-sync` shows no window, syncs once and quits
+      (`runDesktopBackgroundSync`): unless a window is open (it holds
+      `app.lock`), syncing on its own is off, or the last run was within
+      the device's interval; it gives up after 90 seconds. macOS: a launch
+      agent inside the app bundle, turned on through SMAppService, which
+      works for the sandboxed, ad hoc signed app (tried 2026-11-22); it
+      fires every 15 minutes and needs macOS 13. Linux: a systemd user
+      timer whose units are rewritten on each launch
+      (`LinuxSystemdScheduler`), not yet tried on a real Linux desktop.
+      Only release builds schedule themselves
+
 ## Later
 
 - Reminders: syncing dismissals between devices, a choice of time for
   tasks with no time, and Linux reminders while Geas is closed
-- Syncing on Linux and macOS while Geas is closed (a systemd timer or
-  launch agent). Today they sync on a timer only while it's open
 - Calendar view
 - Sign in through a registered Geas GitHub App (device flow): no token to
   copy, but an app to register and tokens to refresh every 8 hours

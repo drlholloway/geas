@@ -157,6 +157,9 @@ class FakeBackgroundScheduler implements BackgroundScheduler {
   final applied = <(bool, Duration)>[];
 
   @override
+  String get where => 'In the background, even when Geas is closed.';
+
+  @override
   Future<void> apply({required bool on, required Duration every}) async =>
       applied.add((on, every));
 }

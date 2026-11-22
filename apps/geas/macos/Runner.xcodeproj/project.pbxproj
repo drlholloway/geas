@@ -317,7 +317,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "echo \"$PRODUCT_NAME.app\" > \"$PROJECT_DIR\"/Flutter/ephemeral/.app_filename && \"$FLUTTER_ROOT\"/packages/flutter_tools/bin/macos_assemble.sh embed\n# Rebuilds reuse the bundle; a fresh date makes macOS read its icon again.\ntouch \"$TARGET_BUILD_DIR/$WRAPPER_NAME\"\n";
+			shellScript = "echo \"$PRODUCT_NAME.app\" > \"$PROJECT_DIR\"/Flutter/ephemeral/.app_filename && \"$FLUTTER_ROOT\"/packages/flutter_tools/bin/macos_assemble.sh embed\n# Rebuilds reuse the bundle; a fresh date makes macOS read its icon again.\ntouch \"$TARGET_BUILD_DIR/$WRAPPER_NAME\"\n# The launch agent that syncs while Geas is closed (see AppDelegate.swift).\nmkdir -p \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchAgents\"\ncp \"$PROJECT_DIR/Runner/dev.laneholloway.geas.sync.plist\" \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Library/LaunchAgents/\"\n";
 		};
 		33CC111E2044C6BF0003C045 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;

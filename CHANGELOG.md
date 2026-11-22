@@ -6,6 +6,12 @@ GitHub Release notes.
 ## Unreleased
 
 ### Added
+- **Syncing while closed on macOS and Linux:** with **Sync on its own**
+  on, Geas now syncs in the background on the desktop too. On macOS
+  (13 or later) it appears under Login Items & Extensions in System
+  Settings; on Linux it's a systemd user timer, `geas-sync.timer`. After
+  an update, macOS may ask once to let Geas read its token from the
+  Keychain; choose Always Allow.
 - **Folders inside folders:** **Move into folder** on a folder's menu
   puts it inside another. Deleting a folder now moves what was in it up
   one level. **Reorder folders** lets you drag the folders at one level

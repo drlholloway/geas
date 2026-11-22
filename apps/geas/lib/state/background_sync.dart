@@ -38,6 +38,9 @@ abstract interface class BackgroundScheduler {
   /// Syncs about every [every] from now on, or never if [on] is false.
   /// Safe to call on every launch.
   Future<void> apply({required bool on, required Duration every});
+
+  /// Where and when this syncs, as Settings says it.
+  String get where;
 }
 
 /// Android's WorkManager: runs [backgroundSyncDispatcher] about as often as
@@ -45,6 +48,11 @@ abstract interface class BackgroundScheduler {
 /// may put a run off to save battery.
 class AndroidBackgroundScheduler implements BackgroundScheduler {
   const AndroidBackgroundScheduler();
+
+  @override
+  String get where =>
+      'In the background, even when Geas is closed, whenever there\'s a '
+      'network. Android may put a sync off to save battery.';
 
   @override
   Future<void> apply({required bool on, required Duration every}) async {

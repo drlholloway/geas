@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:geas_core/geas_core.dart';
@@ -11,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'background_sync.dart';
+import 'desktop_background.dart';
 import 'home_widget.dart';
 import 'reminders.dart';
 
@@ -197,6 +199,7 @@ class AppEnvironment {
     this.homeWidget,
     this.backgroundScheduler,
     this.reminders,
+    this.supportDir,
     this.version = '',
   });
 
@@ -219,7 +222,17 @@ class AppEnvironment {
       homeWidget: Platform.isAndroid ? AndroidHomeWidget() : null,
       backgroundScheduler: Platform.isAndroid
           ? const AndroidBackgroundScheduler()
+          // Only a release build schedules itself on a desktop: a debug
+          // build would leave the system starting a binary that changes
+          // or goes away.
+          : !kReleaseMode
+          ? null
+          : Platform.isMacOS
+          ? const MacAgentScheduler()
+          : Platform.isLinux
+          ? LinuxSystemdScheduler()
           : null,
+      supportDir: dir,
       reminders: LocalNotifications(),
       version: (await PackageInfo.fromPlatform()).version,
     );
@@ -248,6 +261,9 @@ class AppEnvironment {
 
   /// Shows reminders as notifications; null where that can't be done.
   final ReminderHost? reminders;
+
+  /// Where the app keeps its files, or null in tests.
+  final String? supportDir;
 
   /// This build's version, as in pubspec.yaml.
   final String version;

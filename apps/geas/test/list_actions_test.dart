@@ -147,4 +147,60 @@ void main() {
     final order = remoteTasks().singleWhere((t) => t.title == 'Order 1N914s');
     expect(order.tags, ['tayda']);
   });
+
+  testWidgets('a list sorted by hand is reordered by dragging', (tester) async {
+    await app.pump(tester);
+    await go(tester, 'Home');
+    expect(find.textContaining('Overdue'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('List options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sort by hand'));
+    await tester.pumpAndSettle();
+    // One flat list, no sections by due date.
+    expect(find.textContaining('Overdue'), findsNothing);
+    double top(String title) => tester.getTopLeft(find.text(title)).dy;
+    final titles = [
+      'Renew car registration',
+      'Clean the gutters',
+      'Fix the squeaky door',
+    ]..sort((a, b) => top(a).compareTo(top(b)));
+
+    // Drag the first below the second.
+    final drag = await tester.startGesture(
+      tester.getCenter(find.byTooltip('Drag to reorder').first),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    for (var i = 0; i < 8; i++) {
+      await drag.moveBy(const Offset(0, 12));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    await drag.up();
+    await tester.pumpAndSettle();
+    expect(top(titles[1]), lessThan(top(titles[0])));
+    expect(top(titles[0]), lessThan(top(titles[2])));
+
+    // A new task goes on top.
+    await tester.enterText(find.byType(TextField), 'Paint the fence');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(top('Paint the fence'), lessThan(top(titles[1])));
+
+    await tester.pump(syncDelay);
+    await tester.pumpAndSettle();
+    expect(
+      TaskList.parse(utf8.decode(app.github.files['lists/home.yaml']!)).manual,
+      isTrue,
+    );
+    expect(
+      remoteTasks().singleWhere((t) => t.title == 'Paint the fence').position,
+      isNotNull,
+    );
+
+    await tester.tap(find.byTooltip('List options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sort by due date'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Overdue'), findsOneWidget);
+  });
 }

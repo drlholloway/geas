@@ -49,7 +49,8 @@ Plan and status. Check items off as they land; move anything cut from v1 to
 ```
 geas-data/
   geas.yaml                 format: 1
-  lists/<id>.yaml           id, name, color, order
+  lists/<id>.yaml           id, name, color, order; optional folder, and
+                            sort: manual
   filters/<id>.yaml         a saved search: id, name, query, order
   folders/<id>.yaml         a folder: id, name, order
   trackers/<id>.md          a medication or sensor and every time it was logged
@@ -69,6 +70,8 @@ due: 2026-11-12                # or 2026-11-12T09:00-06:00 with a time
 priority: high                 # none | low | medium | high
 repeat: weekly                 # optional: daily | weekdays | weekly |
                                # monthly | yearly | 2w, 10d, 3m...
+position: 2048                 # optional: its place in a list sorted by
+                               # hand, lowest first
 created: 2026-11-08T23:41:02Z
 updated: 2026-11-08T23:41:02Z
 completed: null                # UTC timestamp once done
@@ -488,6 +491,16 @@ how often.
       folder's. Deleting a folder frees what was in it. `geas folders`
       (`add`, `rename`, `rm`, `put`, `take`)
 
+## Phase 9: after 0.5.0
+
+- [x] Manual ordering within a list: a list with `sort: manual` shows its
+      open tasks in one flat list, ordered by each task's `position`, and
+      dragging a row reorders it. Positions are handed out 1024 apart, so
+      a move usually rewrites one task file (`moveInManualOrder`); when
+      there's no room it renumbers the list. New tasks go on top; tasks
+      with no position yet follow the placed ones in due order. "Sort by
+      hand" in the list's menu, `geas lists sort` and `geas move`
+
 ## Later
 
 - Reminders: syncing dismissals between devices, a choice of time for
@@ -500,7 +513,6 @@ how often.
 - Habits and Pomodoro
 - Folders: nesting, reordering folders by drag, and remembering which are
   collapsed between runs
-- Manual ordering within a list
 - OAuth device flow instead of a pasted token
 - Live package status pulled from carriers or a tracking aggregator,
   filling in `status` and `eta` automatically. With no server, each device

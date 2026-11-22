@@ -17,6 +17,7 @@ class TaskList {
     this.color,
     this.order = 0,
     this.folder,
+    this.manual = false,
     this.source,
   });
 
@@ -41,6 +42,8 @@ class TaskList {
       color: optionalString(map, 'color', what),
       order: order as int? ?? 0,
       folder: _folder(optionalString(map, 'folder', what)),
+      manual:
+          optionalString(map, 'sort', what)?.trim().toLowerCase() == 'manual',
       source: text,
     );
   }
@@ -57,6 +60,10 @@ class TaskList {
   /// The id of the folder it's in: the optional `folder` key.
   final String? folder;
 
+  /// Whether its tasks are in an order set by hand (`sort: manual`), not
+  /// grouped by due date.
+  final bool manual;
+
   /// The file as it was read, or null if it hasn't been written. [encode]
   /// edits it in place, keeping comments and unknown keys.
   final String? source;
@@ -65,8 +72,8 @@ class TaskList {
     final source = this.source;
     if (source == null || source.trim().isEmpty) {
       // A list in no folder has no `folder` key.
-      return emitYamlMap(
-          _fields()..removeWhere((k, v) => k == 'folder' && v == null));
+      return emitYamlMap(_fields()
+        ..removeWhere((k, v) => (k == 'folder' || k == 'sort') && v == null));
     }
     return patchYamlMap(source, _fields(), TaskList.parse(source)._fields());
   }
@@ -77,6 +84,7 @@ class TaskList {
         'color': color,
         'order': order,
         'folder': folder,
+        'sort': manual ? 'manual' : null,
       };
 
   /// A copy with the given fields replaced. Pass null for [color] or
@@ -86,6 +94,7 @@ class TaskList {
     Object? color = _keep,
     int? order,
     Object? folder = _keep,
+    bool? manual,
   }) =>
       TaskList(
         id: id,
@@ -93,6 +102,7 @@ class TaskList {
         color: identical(color, _keep) ? this.color : color as String?,
         order: order ?? this.order,
         folder: identical(folder, _keep) ? this.folder : folder as String?,
+        manual: manual ?? this.manual,
         source: source,
       );
 
@@ -103,10 +113,11 @@ class TaskList {
       other.name == name &&
       other.color == color &&
       other.order == order &&
-      other.folder == folder;
+      other.folder == folder &&
+      other.manual == manual;
 
   @override
-  int get hashCode => Object.hash(id, name, color, order, folder);
+  int get hashCode => Object.hash(id, name, color, order, folder, manual);
 
   @override
   String toString() => 'TaskList($id, $name)';

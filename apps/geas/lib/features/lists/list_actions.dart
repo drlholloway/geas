@@ -60,6 +60,15 @@ class ViewMenu extends ConsumerWidget {
             title: Text('Edit list'),
           ),
         ),
+        PopupMenuItem(
+          onTap: () => ref
+              .read(taskStoreProvider.notifier)
+              .saveList(list.copyWith(manual: !list.manual)),
+          child: ListTile(
+            leading: Icon(list.manual ? Icons.event : Icons.swap_vert),
+            title: Text(list.manual ? 'Sort by due date' : 'Sort by hand'),
+          ),
+        ),
         if (list.id != inboxId)
           PopupMenuItem(
             onTap: () => moveToFolder(

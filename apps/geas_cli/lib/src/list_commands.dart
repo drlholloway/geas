@@ -14,12 +14,14 @@ class ListsCommand extends GeasCommand {
   final name = 'lists';
 
   @override
-  final description = 'Show the lists, or add, rename or remove one.';
+  final description = 'Show the lists, or add, rename or remove one, or '
+      'choose how one is sorted.';
 
   @override
   String get invocation => 'geas lists\n'
       '       geas lists add <name> [--color <#rrggbb>]\n'
       '       geas lists rename <list> <new name>\n'
+      '       geas lists sort <list> manual|due\n'
       '       geas lists rm <list>';
 
   @override
@@ -40,6 +42,8 @@ class ListsCommand extends GeasCommand {
       ['rename', final list, ...final words] when words.isNotEmpty =>
         _rename(session, list, words.join(' ')),
       ['rm', final list] => _remove(session, list),
+      ['sort', final list, final how] when how == 'manual' || how == 'due' =>
+        _sort(session, list, manual: how == 'manual'),
       _ => usageException('Unknown or incomplete `geas lists` command.'),
     };
   }
@@ -78,6 +82,19 @@ class ListsCommand extends GeasCommand {
     final list = session.resolveList(input);
     await session.workspace.saveList(list.copyWith(name: name));
     out.writeln('Renamed ${list.name} to $name.');
+    await session.push();
+    return 0;
+  }
+
+  Future<int> _sort(Session session, String input,
+      {required bool manual}) async {
+    await session.pull();
+    final list = session.resolveList(input);
+    await session.workspace.saveList(list.copyWith(manual: manual));
+    out.writeln(manual
+        ? '${list.name} is sorted by hand now. Place tasks with '
+            '`geas move <id> <position>`.'
+        : '${list.name} is sorted by due date now.');
     await session.push();
     return 0;
   }

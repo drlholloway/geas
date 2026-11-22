@@ -124,17 +124,33 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     Priority priority = Priority.none,
     Order? order,
   }) {
-    final task = Task.create(
-      title: title,
-      now: _now,
-      list: list,
-      tags: tags,
-      due: due,
-      priority: priority,
-    ).copyWith(order: order);
+    final task =
+        Task.create(
+          title: title,
+          now: _now,
+          list: list,
+          tags: tags,
+          due: due,
+          priority: priority,
+        ).copyWith(
+          order: order,
+          // In a list sorted by hand, a new task goes on top.
+          position: state.listById(list)?.manual ?? false
+              ? topPosition(_openIn(list))
+              : null,
+        );
     _save(task);
     return task;
   }
+
+  Iterable<Task> _openIn(String list) =>
+      state.tasks.where((t) => t.list == list && !t.isCompleted);
+
+  /// Moves the task with [id] to [index] among the open tasks of [list], a
+  /// list sorted by hand.
+  void moveTask(String list, String id, int index) => _saveAll(
+    moveInManualOrder(manualOrder(_openIn(list)), id, index, now: _now),
+  );
 
   /// Finishes or reopens [task]. Finishing a repeating task also adds the
   /// next one.

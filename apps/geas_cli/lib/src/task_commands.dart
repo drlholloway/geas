@@ -107,7 +107,14 @@ class AddCommand extends GeasCommand {
         ],
         due: due,
         priority: priorityOption ?? typed.priority ?? Priority.none,
-      ).copyWith(repeat: repeat),
+      ).copyWith(
+        repeat: repeat,
+        // In a list sorted by hand, a new task goes on top.
+        position: session.workspace.lists.any((l) => l.id == list && l.manual)
+            ? topPosition(session.workspace.tasks
+                .where((t) => t.list == list && !t.isCompleted))
+            : null,
+      ),
       now: now,
     );
     await session.reload();
@@ -176,6 +183,21 @@ class LsCommand extends GeasCommand {
           showList: list == null,
           when: (t) => 'done ${LocalDate.of(t.completed!.toLocal())}',
         ).forEach(out.writeln);
+      }
+      return 0;
+    }
+
+    // A list sorted by hand, asked for on its own, is shown in that order.
+    final theList = workspace.lists.where((l) => l.id == list).firstOrNull;
+    if (theList != null && theList.manual && window == null && tag == null) {
+      final tasks = manualOrder(
+          workspace.tasks.where((t) => t.list == list && !t.isCompleted));
+      if (tasks.isEmpty) {
+        out.writeln('Nothing to do.');
+      } else {
+        out.writeln('${theList.name}, in your order');
+        taskRows(tasks, now: now, shortId: session.shortId, showList: false)
+            .forEach(out.writeln);
       }
       return 0;
     }
@@ -343,6 +365,59 @@ class DoneCommand extends GeasCommand {
       changed = true;
     }
     if (changed) await session.push();
+    return 0;
+  }
+}
+
+class MoveCommand extends GeasCommand {
+  MoveCommand(super.context);
+
+  @override
+  final name = 'move';
+
+  @override
+  final description = 'Move a task to a place in its list, 1 being the '
+      'top. The list has to be sorted by hand: '
+      '`geas lists sort <list> manual`.';
+
+  @override
+  String get invocation => 'geas move <id> <position>';
+
+  @override
+  Future<int> run() async {
+    if (rest.length != 2) usageException('Give a task id and a position.');
+    final place = int.tryParse(rest[1]);
+    if (place == null || place < 1) {
+      usageException('Give the position as a number; 1 is the top.');
+    }
+    final session = await openSession();
+    await session.pull();
+    final task = session.resolveTask(rest[0]);
+    final list = session.workspace.lists.firstWhere(
+      (l) => l.id == task.list,
+      orElse: () => TaskList(id: task.list, name: task.list),
+    );
+    if (!list.manual) {
+      throw CliException('${list.name} is sorted by due date. Sort it by '
+          'hand first: `geas lists sort ${list.id} manual`.');
+    }
+    if (task.isCompleted) {
+      throw CliException('${task.title} is done; only open tasks have a '
+          'place.');
+    }
+    final now = context.clock();
+    final ordered = manualOrder(session.workspace.tasks
+        .where((t) => t.list == task.list && !t.isCompleted));
+    final changed = moveInManualOrder(ordered, task.id, place - 1, now: now);
+    for (final t in changed) {
+      await session.workspace.saveTask(t, now: now);
+    }
+    final after = manualOrder(session.workspace.tasks
+        .where((t) => t.list == task.list && !t.isCompleted));
+    out.writeln('${task.title} is now '
+        '${after.indexWhere((t) => t.id == task.id) + 1} of ${after.length} '
+        'in ${list.name}.');
+    if (changed.isNotEmpty) await session.push();
     return 0;
   }
 }

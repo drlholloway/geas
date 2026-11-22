@@ -19,7 +19,18 @@ class TaskListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final store = ref.watch(taskStoreProvider);
     final now = ref.watch(clockProvider)();
-    final sections = view.sections(store, now);
+    // A list sorted by hand shows its open tasks in that order, not in
+    // sections by due date.
+    final manual =
+        view.kind == ViewKind.list &&
+            (store.listById(view.arg)?.manual ?? false)
+        ? manualOrder(
+            store.tasks.where((t) => t.list == view.arg && !t.isCompleted),
+          )
+        : null;
+    final sections = manual == null
+        ? view.sections(store, now)
+        : [if (manual.isNotEmpty) TaskSection('', manual)];
     final completed = view.completed(store);
     final narrow = MediaQuery.sizeOf(context).width < sidebarBreakpoint;
     final showList = view.kind != ViewKind.list;
@@ -50,15 +61,58 @@ class TaskListScreen extends ConsumerWidget {
                 ),
               ),
             ),
-          for (final section in sections) ...[
-            _SectionHeader(
-              title: section.title,
-              count: section.tasks.length,
-              color: section.alert ? theme.colorScheme.error : null,
-            ),
-            for (final task in section.tasks)
-              TaskTile(key: ValueKey(task.id), task: task, showList: showList),
-          ],
+          if (manual != null)
+            ReorderableListView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              // Each row has its own handle, so a tap or scroll that starts
+              // on a row never picks it up.
+              buildDefaultDragHandles: false,
+              proxyDecorator: (child, _, _) => Material(child: child),
+              onReorderItem: (from, to) => ref
+                  .read(taskStoreProvider.notifier)
+                  .moveTask(view.arg, manual[from].id, to),
+              children: [
+                for (final (index, task) in manual.indexed)
+                  Row(
+                    key: ValueKey(task.id),
+                    children: [
+                      ReorderableDragStartListener(
+                        index: index,
+                        child: Tooltip(
+                          message: 'Drag to reorder',
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.grab,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 8, 0, 8),
+                              child: Icon(
+                                Icons.drag_indicator,
+                                size: 20,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(child: TaskTile(task: task, showList: false)),
+                    ],
+                  ),
+              ],
+            )
+          else
+            for (final section in sections) ...[
+              _SectionHeader(
+                title: section.title,
+                count: section.tasks.length,
+                color: section.alert ? theme.colorScheme.error : null,
+              ),
+              for (final task in section.tasks)
+                TaskTile(
+                  key: ValueKey(task.id),
+                  task: task,
+                  showList: showList,
+                ),
+            ],
           if (completed.isNotEmpty)
             Theme(
               // No divider lines around the expansion tile.

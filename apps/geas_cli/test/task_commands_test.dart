@@ -323,4 +323,46 @@ void main() {
     expect(task.tags, isEmpty);
     expect(task.due, isNull);
   });
+
+  test('a list sorted by hand keeps the order you give it', () async {
+    expect(await geas(['lists', 'add', 'Pedals']), 0);
+    Future<String> add(String title) async {
+      expect(await geas(['add', '$title ^pedals']), 0, reason: '${geas.err}');
+      return RegExp(r'^Added (\S+) ').firstMatch('${geas.out}')![1]!;
+    }
+
+    final a = await add('Drill the enclosure');
+    expect(await geas(['move', a, '1']), 1);
+    expect('${geas.err}', contains('geas lists sort pedals manual'));
+
+    expect(await geas(['lists', 'sort', 'pedals', 'manual']), 0);
+    expect(geas.remote('lists/pedals.yaml'), contains('sort: manual'));
+    final b = await add('Solder the board');
+    final c = await add('Wire the jacks');
+    List<String> shown() => '${geas.out}'
+        .split('\n')
+        .skip(1)
+        .where((l) => l.trim().isNotEmpty)
+        .map((l) => l.trim().split(RegExp(r'\s{2,}')).last)
+        .toList();
+
+    // New tasks go on top.
+    expect(await geas(['ls', '-l', 'pedals']), 0);
+    expect('${geas.out}', startsWith('Pedals, in your order\n'));
+    expect(
+        shown(), ['Wire the jacks', 'Solder the board', 'Drill the enclosure']);
+
+    expect(await geas(['move', a, '1']), 0);
+    expect('${geas.out}', 'Drill the enclosure is now 1 of 3 in Pedals.\n');
+    expect(await geas(['move', c, '9']), 0);
+    expect(await geas(['ls', '-l', 'pedals']), 0);
+    expect(
+        shown(), ['Drill the enclosure', 'Solder the board', 'Wire the jacks']);
+    expect(geas.remoteTask('Solder the board').position, isNotNull);
+
+    expect(await geas(['lists', 'sort', 'pedals', 'due']), 0);
+    expect(await geas(['ls', '-l', 'pedals']), 0);
+    expect('${geas.out}', startsWith('No date\n'));
+    expect(await geas(['move', b, 'top']), 64);
+  });
 }

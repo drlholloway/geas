@@ -5,6 +5,12 @@ GitHub Release notes.
 
 ## Unreleased
 
+### Added
+- **Sort a list by hand:** choose **Sort by hand** in a list's menu and
+  drag its tasks into the order you want. New tasks go on top. Switch
+  back to sorting by due date at any time. In the CLI,
+  `geas lists sort <list> manual` and `geas move <id> <position>`.
+
 ## 0.5.0 — 2026-11-22
 
 Folders that group lists, saved filters and Health trackers, and Amazon

@@ -5,6 +5,28 @@ GitHub Release notes.
 
 ## Unreleased
 
+### Added
+- **Reminders that follow you:** tapping a reminder dismisses it on your
+  other devices too, once they sync, and opens the task or tracker.
+  Finishing the task or logging the dose clears its reminder everywhere.
+  Settings has a time for tasks with no time, in place of the fixed
+  9:00. On Linux, reminders now arrive with Geas closed.
+- **Syncing while closed on macOS and Linux:** with **Sync on its own**
+  on, Geas now syncs in the background on the desktop too. On macOS
+  (13 or later) it appears under Login Items & Extensions in System
+  Settings; on Linux it's a systemd user timer, `geas-sync.timer`. After
+  an update, macOS may ask once to let Geas read its token from the
+  Keychain; choose Always Allow.
+- **Folders inside folders:** **Move into folder** on a folder's menu
+  puts it inside another. Deleting a folder now moves what was in it up
+  one level. **Reorder folders** lets you drag the folders at one level
+  into order, and the sidebar remembers which folders you closed. In the
+  CLI, `geas folders nest`, `unnest` and `move`.
+- **Sort a list by hand:** choose **Sort by hand** in a list's menu and
+  drag its tasks into the order you want. New tasks go on top. Switch
+  back to sorting by due date at any time. In the CLI,
+  `geas lists sort <list> manual` and `geas move <id> <position>`.
+
 ## 0.5.0 — 2026-11-22
 
 Folders that group lists, saved filters and Health trackers, and Amazon

@@ -146,15 +146,40 @@ class FakeReminders implements ReminderHost {
     return allowed;
   }
 
+  /// What was to stay on screen at each schedule, oldest first.
+  final standing = <List<Reminder>>[];
+
+  /// The reminder whose tap launches the app.
+  ReminderTap? launchTap;
+
+  final _taps = StreamController<ReminderTap>.broadcast();
+
+  /// Taps the reminder for [key] at [at].
+  void tap(String key, DateTime at) => _taps.add((key: key, at: at));
+
   @override
-  Future<void> schedule(List<Reminder> reminders) async =>
-      schedules.add(reminders);
+  Future<void> schedule(
+    List<Reminder> upcoming, {
+    List<Reminder> standing = const [],
+  }) async {
+    schedules.add(upcoming);
+    this.standing.add(standing);
+  }
+
+  @override
+  Stream<ReminderTap> get taps => _taps.stream;
+
+  @override
+  Future<ReminderTap?> launchedFrom() async => launchTap;
 }
 
 /// A background scheduler that keeps what it was asked for.
 class FakeBackgroundScheduler implements BackgroundScheduler {
   /// Every setting applied, oldest first: whether it's on, and how often.
   final applied = <(bool, Duration)>[];
+
+  @override
+  String get where => 'In the background, even when Geas is closed.';
 
   @override
   Future<void> apply({required bool on, required Duration every}) async =>

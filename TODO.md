@@ -39,7 +39,8 @@ Plan and status. Check items off as they land; move anything cut from v1 to
 
 - **Categorization (2026-11-20):** tags, plus folders. A folder groups
   lists, saved filters and Health trackers; a thing is in at most one
-  folder, and folders don't nest. Membership is an optional `folder` key
+  folder. Folders nest (2026-11-22): a folder's optional `parent` names
+  the folder it's inside. Membership is an optional `folder` key
   on each member, so moving one thing edits one file and two devices
   filing different things never collide. Something filed in a folder that
   no longer exists counts as in none.
@@ -49,9 +50,11 @@ Plan and status. Check items off as they land; move anything cut from v1 to
 ```
 geas-data/
   geas.yaml                 format: 1
-  lists/<id>.yaml           id, name, color, order
+  dismissed.yaml            reminders acknowledged on any device
+  lists/<id>.yaml           id, name, color, order; optional folder, and
+                            sort: manual
   filters/<id>.yaml         a saved search: id, name, query, order
-  folders/<id>.yaml         a folder: id, name, order
+  folders/<id>.yaml         a folder: id, name, order; optional parent
   trackers/<id>.md          a medication or sensor and every time it was logged
   tasks/<id>.md             open and recently completed tasks
   archive/<yyyy>/<id>.md    tasks completed more than 30 days ago
@@ -69,6 +72,8 @@ due: 2026-11-12                # or 2026-11-12T09:00-06:00 with a time
 priority: high                 # none | low | medium | high
 repeat: weekly                 # optional: daily | weekdays | weekly |
                                # monthly | yearly | 2w, 10d, 3m...
+position: 2048                 # optional: its place in a list sorted by
+                               # hand, lowest first
 created: 2026-11-08T23:41:02Z
 updated: 2026-11-08T23:41:02Z
 completed: null                # UTC timestamp once done
@@ -488,19 +493,58 @@ how often.
       folder's. Deleting a folder frees what was in it. `geas folders`
       (`add`, `rename`, `rm`, `put`, `take`)
 
+## Phase 9: after 0.5.0
+
+- [x] Manual ordering within a list: a list with `sort: manual` shows its
+      open tasks in one flat list, ordered by each task's `position`, and
+      dragging a row reorders it. Positions are handed out 1024 apart, so
+      a move usually rewrites one task file (`moveInManualOrder`); when
+      there's no room it renumbers the list. New tasks go on top; tasks
+      with no position yet follow the placed ones in due order. "Sort by
+      hand" in the list's menu, `geas lists sort` and `geas move`
+
+- [x] Folders, the rest. Nesting: an optional `parent` key; `folderTree`
+      flattens the tree, and a parent that's missing or would make a loop
+      leaves the folder at the top. Deleting a folder moves what was in
+      it, folders included, up one level. "Move into folder" on a folder's
+      menu. Reordering: "Reorder folders" opens the folders at that level
+      to drag into order. Collapsed folders are remembered per device in
+      `config.json`. `geas folders nest`, `unnest` and `move`
+
+- [x] Syncing on macOS and Linux while Geas is closed. Geas started
+      with `--background-sync` shows no window, syncs once and quits
+      (`runDesktopBackgroundSync`): unless a window is open (it holds
+      `app.lock`), syncing on its own is off, or the last run was within
+      the device's interval; it gives up after 90 seconds. macOS: a launch
+      agent inside the app bundle, turned on through SMAppService, which
+      works for the sandboxed, ad hoc signed app (tried 2026-11-22); it
+      fires every 15 minutes and needs macOS 13. Linux: a systemd user
+      timer whose units are rewritten on each launch
+      (`LinuxSystemdScheduler`), not yet tried on a real Linux desktop.
+      Only release builds schedule themselves
+
+- [x] Reminders, the rest. A per-device time for tasks with no time
+      (`reminder_minutes` in `config.json`, a time picker in Settings).
+      Dismissals: tapping a reminder records it in `dismissed.yaml`
+      (`Dismissals`: reminder key to the time of the latest one
+      dismissed; sync pools both sides, the later winning) and opens the
+      task or tracker; each device, when it next sets its reminders, takes
+      down notifications that no longer stand (`standingReminders`): the
+      task was finished, the dose logged, or another device dismissed it.
+      Linux while closed: the app asks systemd to start it with no window
+      when the next reminder is due (`LinuxReminderWake`, a one-off
+      `geas-reminder` timer), and each start shows what came due since the
+      last; not yet tried on a real Linux desktop
+
 ## Later
 
-- Reminders: syncing dismissals between devices, a choice of time for
-  tasks with no time, and Linux reminders while Geas is closed
-- Syncing on Linux and macOS while Geas is closed (a systemd timer or
-  launch agent). Today they sync on a timer only while it's open
+- Reminders: a Dismiss button on the notification itself (today only a
+  tap counts; swiping one away isn't reported to apps), and clearing
+  notifications on Linux
 - Calendar view
 - Sign in through a registered Geas GitHub App (device flow): no token to
   copy, but an app to register and tokens to refresh every 8 hours
 - Habits and Pomodoro
-- Folders: nesting, reordering folders by drag, and remembering which are
-  collapsed between runs
-- Manual ordering within a list
 - OAuth device flow instead of a pasted token
 - Live package status pulled from carriers or a tracking aggregator,
   filling in `status` and `eta` automatically. With no server, each device

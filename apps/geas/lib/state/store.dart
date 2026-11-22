@@ -18,6 +18,7 @@ class TaskStore {
     Iterable<Tracker> trackers = const [],
     Iterable<SavedFilter> filters = const [],
     Iterable<Folder> folders = const [],
+    this.dismissals = const Dismissals(),
     this.loaded = true,
     this.warnDays = defaultWarnDays,
   }) : lists = withInbox(lists),
@@ -42,6 +43,9 @@ class TaskStore {
   /// Folders that group lists, filters and trackers, in display order.
   final List<Folder> folders;
 
+  /// Reminders dismissed on any device.
+  final Dismissals dismissals;
+
   /// False until the local copy has been read.
   final bool loaded;
 
@@ -54,12 +58,14 @@ class TaskStore {
     Iterable<Tracker>? trackers,
     Iterable<SavedFilter>? filters,
     Iterable<Folder>? folders,
+    Dismissals? dismissals,
   }) => TaskStore(
     tasks: tasks ?? this.tasks,
     lists: lists ?? this.lists,
     trackers: trackers ?? this.trackers,
     filters: filters ?? this.filters,
     folders: folders ?? this.folders,
+    dismissals: dismissals ?? this.dismissals,
     loaded: loaded,
     warnDays: warnDays,
   );
@@ -124,17 +130,33 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     Priority priority = Priority.none,
     Order? order,
   }) {
-    final task = Task.create(
-      title: title,
-      now: _now,
-      list: list,
-      tags: tags,
-      due: due,
-      priority: priority,
-    ).copyWith(order: order);
+    final task =
+        Task.create(
+          title: title,
+          now: _now,
+          list: list,
+          tags: tags,
+          due: due,
+          priority: priority,
+        ).copyWith(
+          order: order,
+          // In a list sorted by hand, a new task goes on top.
+          position: state.listById(list)?.manual ?? false
+              ? topPosition(_openIn(list))
+              : null,
+        );
     _save(task);
     return task;
   }
+
+  Iterable<Task> _openIn(String list) =>
+      state.tasks.where((t) => t.list == list && !t.isCompleted);
+
+  /// Moves the task with [id] to [index] among the open tasks of [list], a
+  /// list sorted by hand.
+  void moveTask(String list, String id, int index) => _saveAll(
+    moveInManualOrder(manualOrder(_openIn(list)), id, index, now: _now),
+  );
 
   /// Finishes or reopens [task]. Finishing a repeating task also adds the
   /// next one.
@@ -237,6 +259,18 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     });
   }
 
+  /// Records that the reminder for [key] at [at] was acknowledged here, so
+  /// every device clears it.
+  void dismissReminder(String key, DateTime at) {
+    final dismissals = state.dismissals.dismiss(key, at, now: _now);
+    if (dismissals == state.dismissals) return;
+    state = state.copyWith(dismissals: dismissals);
+    _enqueue(() async {
+      await _workspace?.saveDismissals(dismissals);
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
   /// Adds [folder], or saves changes to it.
   void saveFolder(Folder folder) {
     state = state.copyWith(
@@ -252,24 +286,49 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
     });
   }
 
-  /// Removes the folder with [id]. What was in it stays, in no folder.
-  void deleteFolder(String id) {
+  /// Puts sibling folders in the order of [ids].
+  void reorderFolders(List<String> ids) {
+    final changed = renumberFolders([
+      for (final id in ids) ?state.folderById(id),
+    ]);
+    if (changed.isEmpty) return;
+    final changedIds = {for (final f in changed) f.id};
     state = state.copyWith(
       folders: [
         for (final f in state.folders)
-          if (f.id != id) f,
+          if (!changedIds.contains(f.id)) f,
+        ...changed,
+      ],
+    );
+    _enqueue(() async {
+      for (final folder in changed) {
+        await _workspace?.saveFolder(folder);
+      }
+      if (ref.mounted) ref.read(syncProvider.notifier).schedule();
+    });
+  }
+
+  /// Removes the folder with [id]. What was in it stays, moved up to the
+  /// folder it was in, or to no folder.
+  void deleteFolder(String id) {
+    final gone = state.folderById(id);
+    final up = gone == null ? null : parentFolder(gone, state.folders)?.id;
+    state = state.copyWith(
+      folders: [
+        for (final f in state.folders)
+          if (f.id != id) f.parent == id ? f.copyWith(parent: up) : f,
       ],
       lists: [
         for (final l in state.lists)
-          l.folder == id ? l.copyWith(folder: null) : l,
+          l.folder == id ? l.copyWith(folder: up) : l,
       ],
       filters: [
         for (final f in state.filters)
-          f.folder == id ? f.copyWith(folder: null) : f,
+          f.folder == id ? f.copyWith(folder: up) : f,
       ],
       trackers: [
         for (final t in state.trackers)
-          t.folder == id ? t.copyWith(folder: null) : t,
+          t.folder == id ? t.copyWith(folder: up) : t,
       ],
     );
     _enqueue(() async {
@@ -466,6 +525,7 @@ class TaskStoreNotifier extends Notifier<TaskStore> {
           trackers: workspace.trackers,
           filters: workspace.filters,
           folders: workspace.folders,
+          dismissals: workspace.dismissals,
           warnDays: workspace.warnDays,
         );
       });

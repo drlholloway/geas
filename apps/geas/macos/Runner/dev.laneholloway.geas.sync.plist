@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The launch agent that syncs while Geas is closed. It ships inside the
+     app (Contents/Library/LaunchAgents) and Settings turns it on and off
+     through SMAppService. It starts Geas with no window every 15 minutes;
+     Geas itself decides whether a sync is due yet. -->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>dev.laneholloway.geas.sync</string>
+	<key>BundleProgram</key>
+	<string>Contents/MacOS/Geas</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>Contents/MacOS/Geas</string>
+		<string>--background-sync</string>
+	</array>
+	<key>StartInterval</key>
+	<integer>900</integer>
+	<key>ProcessType</key>
+	<string>Background</string>
+</dict>
+</plist>

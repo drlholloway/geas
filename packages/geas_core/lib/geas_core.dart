@@ -17,6 +17,7 @@ export 'src/github/http_github_client.dart';
 export 'src/github/setup_links.dart';
 export 'src/init.dart';
 export 'src/local_date.dart';
+export 'src/manual_order.dart';
 export 'src/matrix.dart';
 export 'src/order.dart';
 export 'src/priority.dart';

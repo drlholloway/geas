@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:geas_core/geas_core.dart';
@@ -11,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'background_sync.dart';
+import 'desktop_background.dart';
 import 'home_widget.dart';
 import 'reminders.dart';
 
@@ -33,6 +35,8 @@ class AppConfig {
     this.backgroundSync = true,
     this.syncMinutes = defaultSyncMinutes,
     this.reminders = false,
+    this.collapsedFolders = const [],
+    this.reminderMinutes = reminderHour * 60,
   });
 
   factory AppConfig.fromJson(Map<String, Object?> json) => AppConfig(
@@ -48,6 +52,14 @@ class AppConfig {
       _ => defaultSyncMinutes,
     },
     reminders: json['reminders'] as bool? ?? false,
+    collapsedFolders: switch (json['collapsed_folders']) {
+      final List<Object?> ids => [for (final id in ids) '$id'],
+      _ => const [],
+    },
+    reminderMinutes: switch (json['reminder_minutes']) {
+      final int minutes when minutes >= 0 && minutes < 24 * 60 => minutes,
+      _ => reminderHour * 60,
+    },
   );
 
   final RepoRef repo;
@@ -69,6 +81,13 @@ class AppConfig {
   /// medication or sensor is due again.
   final bool reminders;
 
+  /// When this device announces a task that has a due date but no time,
+  /// in minutes past midnight.
+  final int reminderMinutes;
+
+  /// The ids of the folders closed in this device's sidebar.
+  final List<String> collapsedFolders;
+
   /// A copy with the given fields replaced. Pass null for [tokenExpires] to
   /// clear it.
   AppConfig copyWith({
@@ -76,6 +95,8 @@ class AppConfig {
     bool? backgroundSync,
     int? syncMinutes,
     bool? reminders,
+    List<String>? collapsedFolders,
+    int? reminderMinutes,
   }) => AppConfig(
     repo: repo,
     device: device,
@@ -85,6 +106,8 @@ class AppConfig {
     backgroundSync: backgroundSync ?? this.backgroundSync,
     syncMinutes: syncMinutes ?? this.syncMinutes,
     reminders: reminders ?? this.reminders,
+    collapsedFolders: collapsedFolders ?? this.collapsedFolders,
+    reminderMinutes: reminderMinutes ?? this.reminderMinutes,
   );
 
   Map<String, Object?> toJson() => {
@@ -95,6 +118,9 @@ class AppConfig {
     if (!backgroundSync) 'background_sync': false,
     if (syncMinutes != defaultSyncMinutes) 'sync_minutes': syncMinutes,
     if (reminders) 'reminders': true,
+    if (collapsedFolders.isNotEmpty) 'collapsed_folders': collapsedFolders,
+    if (reminderMinutes != reminderHour * 60)
+      'reminder_minutes': reminderMinutes,
   };
 }
 
@@ -186,6 +212,7 @@ class AppEnvironment {
     this.homeWidget,
     this.backgroundScheduler,
     this.reminders,
+    this.supportDir,
     this.version = '',
   });
 
@@ -208,8 +235,23 @@ class AppEnvironment {
       homeWidget: Platform.isAndroid ? AndroidHomeWidget() : null,
       backgroundScheduler: Platform.isAndroid
           ? const AndroidBackgroundScheduler()
+          // Only a release build schedules itself on a desktop: a debug
+          // build would leave the system starting a binary that changes
+          // or goes away.
+          : !kReleaseMode
+          ? null
+          : Platform.isMacOS
+          ? const MacAgentScheduler()
+          : Platform.isLinux
+          ? LinuxSystemdScheduler()
           : null,
-      reminders: LocalNotifications(),
+      supportDir: dir,
+      reminders: LocalNotifications(
+        supportDir: dir,
+        linuxWake: kReleaseMode && Platform.isLinux
+            ? LinuxReminderWake()
+            : null,
+      ),
       version: (await PackageInfo.fromPlatform()).version,
     );
   }
@@ -237,6 +279,9 @@ class AppEnvironment {
 
   /// Shows reminders as notifications; null where that can't be done.
   final ReminderHost? reminders;
+
+  /// Where the app keeps its files, or null in tests.
+  final String? supportDir;
 
   /// This build's version, as in pubspec.yaml.
   final String version;

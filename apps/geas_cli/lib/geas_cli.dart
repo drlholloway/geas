@@ -47,6 +47,7 @@ Future<int> runGeas(List<String> args, GeasContext context) async {
     ShowCommand(context),
     DoneCommand(context),
     RmCommand(context),
+    MoveCommand(context),
     EditCommand(context),
     ListsCommand(context),
     FoldersCommand(context),

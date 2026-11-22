@@ -4,6 +4,7 @@ import '../archive.dart';
 import '../filter.dart';
 import '../folder.dart';
 import '../matrix.dart';
+import '../reminder.dart';
 import '../repo_config.dart';
 import '../task.dart';
 import '../task_list.dart';
@@ -32,6 +33,7 @@ class Workspace {
   final _folders = <String, Folder>{};
   final _problems = <String, String>{};
   RepoConfig? _config;
+  var _dismissals = const Dismissals();
 
   Iterable<Task> get tasks => _tasks.values;
 
@@ -42,6 +44,14 @@ class Workspace {
   List<Tracker> get trackers => sortTrackers(_trackers.values);
 
   Tracker? tracker(String id) => _trackers[id];
+
+  /// Reminders dismissed on any device.
+  Dismissals get dismissals => _dismissals;
+
+  Future<void> saveDismissals(Dismissals dismissals) async {
+    _dismissals = dismissals;
+    await _area.write(dismissedPath, utf8.encode(dismissals.encode()));
+  }
 
   /// Folders, in display order.
   List<Folder> get folders => sortFolders(_folders.values);
@@ -70,6 +80,7 @@ class Workspace {
     _folders.clear();
     _problems.clear();
     _config = null;
+    _dismissals = const Dismissals();
     _index(await _area.readAll());
   }
 
@@ -118,17 +129,23 @@ class Workspace {
     return _folders[folder.id] = Folder.parse(text);
   }
 
-  /// Removes the folder and takes everything out of it: its lists, filters
-  /// and trackers stay, in no folder.
+  /// Removes the folder and takes everything out of it: its lists, filters,
+  /// trackers and the folders inside it stay, moved up to the folder it was
+  /// in, or to no folder if it was at the top level.
   Future<void> deleteFolder(String id) async {
+    final gone = _folders[id];
+    final up = gone == null ? null : parentFolder(gone, _folders.values)?.id;
     for (final list in _lists.values.where((l) => l.folder == id).toList()) {
-      await saveList(list.copyWith(folder: null));
+      await saveList(list.copyWith(folder: up));
     }
     for (final f in _filters.values.where((f) => f.folder == id).toList()) {
-      await saveFilter(f.copyWith(folder: null));
+      await saveFilter(f.copyWith(folder: up));
     }
     for (final t in _trackers.values.where((t) => t.folder == id).toList()) {
-      await saveTracker(t.copyWith(folder: null));
+      await saveTracker(t.copyWith(folder: up));
+    }
+    for (final f in _folders.values.where((f) => f.parent == id).toList()) {
+      await saveFolder(f.copyWith(parent: up));
     }
     _folders.remove(id);
     await _area.delete(folderPath(id));
@@ -158,6 +175,14 @@ class Workspace {
       if (path == repoConfigPath) {
         try {
           _config = RepoConfig.parse(utf8.decode(bytes));
+        } on FormatException catch (e) {
+          _problems[path] = e.message;
+        }
+        return;
+      }
+      if (path == dismissedPath) {
+        try {
+          _dismissals = Dismissals.parse(utf8.decode(bytes));
         } on FormatException catch (e) {
           _problems[path] = e.message;
         }

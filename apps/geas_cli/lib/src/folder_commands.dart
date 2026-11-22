@@ -24,6 +24,9 @@ class FoldersCommand extends GeasCommand {
       '       geas folders add <name>\n'
       '       geas folders rename <folder> <new name>\n'
       '       geas folders rm <folder>\n'
+      '       geas folders nest <folder> <inside>\n'
+      '       geas folders unnest <folder>\n'
+      '       geas folders move <folder> <position>\n'
       '       geas folders put <folder> <item>...\n'
       '       geas folders take <item>...';
 
@@ -39,6 +42,12 @@ class FoldersCommand extends GeasCommand {
         _rename(session, folder, words.join(' ')),
       ['rm', ...final words] when words.isNotEmpty =>
         _remove(session, words.join(' ')),
+      ['nest', final folder, final inside] =>
+        _nest(session, _resolve(session, folder), _resolve(session, inside)),
+      ['unnest', final folder] =>
+        _nest(session, _resolve(session, folder), null),
+      ['move', final folder, final position] =>
+        _move(session, _resolve(session, folder), position),
       ['put', final folder, ...final items] when items.isNotEmpty =>
         _put(session, _resolve(session, folder), items),
       ['take', ...final items] when items.isNotEmpty =>
@@ -102,14 +111,56 @@ class FoldersCommand extends GeasCommand {
       return 0;
     }
     final items = _items(w);
-    for (final folder in w.folders) {
-      out.writeln('${folder.name} (${folder.id})');
+    final tree = folderTree(w.folders);
+    for (final (index, (:folder, :depth)) in tree.indexed) {
+      final pad = '  ' * depth;
+      out.writeln('$pad${folder.name} (${folder.id})');
       final inside = items.where((i) => i.folder == folder.id);
-      if (inside.isEmpty) out.writeln('  (empty)');
+      final hasFolders =
+          index + 1 < tree.length && tree[index + 1].depth > depth;
+      if (inside.isEmpty && !hasFolders) out.writeln('$pad  (empty)');
       for (final i in inside) {
-        out.writeln('  ${i.kind.padRight(7)}  ${i.name}');
+        out.writeln('$pad  ${i.kind.padRight(7)}  ${i.name}');
       }
     }
+    return 0;
+  }
+
+  /// Puts [folder] inside [inside], or at the top level if that's null.
+  Future<int> _nest(Session session, Folder folder, Folder? inside) async {
+    final all = session.workspace.folders;
+    if (inside != null &&
+        (inside.id == folder.id ||
+            foldersInside(folder.id, all).contains(inside.id))) {
+      throw CliException(
+          '${inside.name} is ${inside.id == folder.id ? '' : 'inside '}'
+          '${folder.name}${inside.id == folder.id ? ' itself' : ''}; '
+          'a folder can\'t go inside itself.');
+    }
+    await session.workspace.saveFolder(folder.copyWith(parent: inside?.id));
+    out.writeln(inside == null
+        ? '${folder.name} is at the top level.'
+        : 'Put ${folder.name} inside ${inside.name}.');
+    await session.push();
+    return 0;
+  }
+
+  /// Moves [folder] to [position] among the folders at its level.
+  Future<int> _move(Session session, Folder folder, String position) async {
+    final place = int.tryParse(position);
+    if (place == null || place < 1) {
+      usageException('Give the position as a number; 1 is first.');
+    }
+    final all = session.workspace.folders;
+    final parent = parentFolder(folder, all)?.id;
+    final siblings = sortFolders(all
+        .where((f) => f.id != folder.id && parentFolder(f, all)?.id == parent));
+    siblings.insert((place - 1).clamp(0, siblings.length), folder);
+    for (final f in renumberFolders(siblings)) {
+      await session.workspace.saveFolder(f);
+    }
+    out.writeln(siblings.map((f) => f.name).join(', '));
+    await session.push();
     return 0;
   }
 

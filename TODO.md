@@ -538,6 +538,35 @@ how often.
 
 ## Later
 
+- GitLab, and self-hosted servers for both (asked for 2026-11-23). The
+  data repo can live on any of four: github.com, a GitHub Enterprise
+  Server, gitlab.com, or a self-hosted GitLab.
+  - Setup asks which host, and for a self-hosted one its address. The
+    config keeps the kind (`github` | `gitlab`) and the base URL beside
+    the repo; devices already set up read as github.com.
+  - GitHub Enterprise Server is the smaller half: `HttpGitHubClient`
+    already takes an `apiBase` (`https://<host>/api/v3` there), and
+    `newRepoUrl` and `newTokenUrl` need the host. Older servers have no
+    fine-grained tokens, so setup has to accept a classic one and say
+    which scope it needs.
+  - GitLab needs its own client behind the same interface, which wants a
+    more neutral name than `GitHubClient`. Reading maps across: the
+    branch head, the recursive tree (paged) and blobs by SHA, which are
+    the same git hashes. Writing doesn't: GitLab has no blob, tree and
+    commit calls, only one commit call that takes a list of file actions,
+    so the sync loop's push step has to go through the interface as "this
+    commit on top of that head", not as three calls.
+  - To settle first: how to refuse a push when another device got there
+    first. GitHub does it with a non-forced ref update; GitLab's commit
+    call has to be checked for an equivalent before the design is fixed,
+    since sync depends on it.
+  - Tokens: a GitLab project access token (or a personal one) with the
+    `api` scope, or `read_repository` and `write_repository` if those
+    turn out to be enough. The setup links and the expiry warning need
+    GitLab's forms and its way of reporting expiry.
+  - The CLI's `geas setup` and `geas init` take the same host choice, and
+    `gh` is only offered for GitHub hosts.
+
 - Reminders: a Dismiss button on the notification itself (today only a
   tap counts; swiping one away isn't reported to apps), and clearing
   notifications on Linux

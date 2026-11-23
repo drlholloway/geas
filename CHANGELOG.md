@@ -5,6 +5,14 @@ GitHub Release notes.
 
 ## Unreleased
 
+## 0.6.0 — 2026-11-23
+
+Lists sorted by hand, folders inside folders, syncing while closed on
+macOS and Linux, and reminders that follow you between devices.
+
+Update every device together: 0.5.0 ignores a hand-sorted order, shows
+nested folders side by side, and doesn't clear dismissed reminders.
+
 ### Added
 - **Reminders that follow you:** tapping a reminder dismisses it on your
   other devices too, once they sync, and opens the task or tracker.

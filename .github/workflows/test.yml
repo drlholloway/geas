@@ -69,12 +69,16 @@ jobs:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
+      # The Flutter that pubspec.lock was written with, since Flutter itself
+      # fixes some package versions. After upgrading Flutter on the dev
+      # machine: run `flutter pub get`, commit pubspec.lock, and put the
+      # new version here.
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+          flutter-version: 3.47.2
       # The analysis reads the resolved dependencies, and the tests' coverage.
-      # Exactly the versions in pubspec.lock: if this fails after a Flutter
-      # update, run `flutter pub get` on the new Flutter and commit the lock.
+      # Exactly the versions in pubspec.lock.
       - run: flutter pub get --enforce-lockfile
       - run: cd packages/geas_core && dart test --coverage-path=coverage/lcov.info
       - run: cd apps/geas_cli && dart test --coverage-path=coverage/lcov.info

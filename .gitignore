@@ -15,4 +15,6 @@ Thumbs.db
 # Dart and Flutter
 .dart_tool/
 build/
-pubspec.lock
+
+# Test coverage, written for SonarQube in CI
+coverage/

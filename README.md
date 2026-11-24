@@ -95,6 +95,12 @@ it keeps you on top of things, you can
 
 ## License
 
-Copyright © 2026 Cryptid Effects (Lane Holloway). Licensed under the
-PolyForm Shield License 1.0.0: you may use, copy, modify and share Geas,
-but not to build a competing product. See [LICENSE](LICENSE).
+Copyright © 2026 Cryptid Effects (Lane Holloway). Geas is free software
+under the GNU Affero General Public License, version 3 only
+(AGPL-3.0-only): you may use, copy, modify and share it, and if you
+distribute a changed version, or run one as a service for others, you
+must publish your changes under the same license. See [LICENSE](LICENSE)
+and [NOTICE](NOTICE).
+
+Versions up to 0.6.0 were released under the PolyForm Shield License
+1.0.0.

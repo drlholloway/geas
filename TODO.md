@@ -45,6 +45,14 @@ Plan and status. Check items off as they land; move anything cut from v1 to
   filing different things never collide. Something filed in a folder that
   no longer exists counts as in none.
 
+- **License (2026-11-24):** AGPL-3.0-only, in place of PolyForm Shield
+  1.0.0, so the project counts as open source (SonarQube Cloud's OSS plan
+  asks for an OSI-approved license). Anyone may now build on Geas,
+  including commercially, as long as their changes stay under the AGPL.
+  `LICENSE` is the license's text unchanged, so GitHub recognizes it; the
+  copyright line and the "version 3 only" statement are in `NOTICE`.
+  Releases up to 0.6.0 stay under Shield.
+
 ## Data format
 
 ```

@@ -272,7 +272,7 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.code),
             title: const Text('Source code'),
             subtitle: const Text(
-              'On GitHub, under the PolyForm Shield 1.0.0 license.',
+              'On GitHub. Free software under the AGPL-3.0 license.',
             ),
             trailing: const Icon(Icons.open_in_new, size: 18),
             onTap: () => env.openUrl(Uri.parse(sourceUrl)),

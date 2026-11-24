@@ -5,6 +5,11 @@ GitHub Release notes.
 
 ## Unreleased
 
+### Changed
+- **License:** Geas is now free software under the GNU Affero General
+  Public License, version 3 only (AGPL-3.0-only). Versions up to 0.6.0
+  remain under the PolyForm Shield License 1.0.0.
+
 ## 0.6.0 — 2026-11-23
 
 Lists sorted by hand, folders inside folders, syncing while closed on

@@ -190,6 +190,10 @@ The Git Data API refuses writes to an empty repo, so `geas init` creates
 - [x] Install `just` (`brew install just`)
 - [x] GitHub Actions: analyze and test on push to main and on PRs, plus
       Linux release and Android debug builds
+- [x] SonarQube Cloud (2026-11-24): a job in the same workflow scans
+      main and each PR with the tests' coverage, signing in with the
+      workflow's identity (no token). `sonar-project.properties` says what
+      is analyzed
 
 ## Phase 1: Core model and format (`geas_core`)
 

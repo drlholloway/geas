@@ -146,7 +146,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           number: 2,
           title: 'The data repo',
           children: [
-            Text(
+            const Text(
               'A private GitHub repo holds your tasks. Already have one? '
               'Fill in its name and go on to step 3.',
             ),

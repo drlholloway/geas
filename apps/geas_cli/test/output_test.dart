@@ -18,7 +18,7 @@ void main() {
   });
 
   test('a timed due shows the time here', () {
-    expect(dueLabel(Due.at(const LocalDate(2026, 11, 9), 17, 5), now),
+    expect(dueLabel(const Due.at(LocalDate(2026, 11, 9), 17, 5), now),
         'today 17:05');
   });
 
@@ -41,7 +41,7 @@ void main() {
     );
     expect(
       taskRows([
-        task('A', 'One', due: Due.date(const LocalDate(2026, 11, 9))),
+        task('A', 'One', due: const Due.date(LocalDate(2026, 11, 9))),
         task('BB', 'Two', priority: Priority.high),
       ], now: now, shortId: (id) => id, showList: false),
       ['  A   today       One', '  BB         !!!  Two'],

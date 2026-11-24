@@ -2,8 +2,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Reminders: set again after a restart. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- No Android backup: the tasks live in the data repo, and the token
+         can't be restored onto another device anyway. HTTPS only. -->
     <application
         android:label="Geas"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -18,6 +18,14 @@ on:
 permissions:
   contents: read
 
+# The Flutter that pubspec.lock was written with, since Flutter itself fixes
+# some package versions, and every job installs exactly the lockfile. After
+# upgrading Flutter on the dev machine: run `flutter pub get`, build Android
+# once with `--write-locks` (see android/build.gradle.kts), commit the lock
+# files, and put the new version here and in the other workflow.
+env:
+  FLUTTER_VERSION: '3.47.2'
+
 jobs:
   version:
     runs-on: ubuntu-latest
@@ -43,8 +51,9 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
       - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: cd apps/geas && flutter build linux --release
       - name: tarball
         run: |
@@ -81,7 +90,8 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
-      - run: flutter pub get
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - run: flutter pub get --enforce-lockfile
       - name: release signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -115,7 +125,8 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
-      - run: flutter pub get
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - run: flutter pub get --enforce-lockfile
       - run: cd apps/geas && flutter build macos --release
       - name: sign (ad hoc) and zip
         run: |

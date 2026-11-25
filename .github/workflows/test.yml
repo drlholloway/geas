@@ -8,6 +8,14 @@ on:
 permissions:
   contents: read
 
+# The Flutter that pubspec.lock was written with, since Flutter itself fixes
+# some package versions, and every job installs exactly the lockfile. After
+# upgrading Flutter on the dev machine: run `flutter pub get`, build Android
+# once with `--write-locks` (see android/build.gradle.kts), commit the lock
+# files, and put the new version here and in the other workflow.
+env:
+  FLUTTER_VERSION: '3.47.2'
+
 jobs:
   dart:
     name: Analyze and test
@@ -17,7 +25,8 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
-      - run: flutter pub get
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - run: flutter pub get --enforce-lockfile
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze --fatal-infos
       - run: cd packages/geas_core && dart test
@@ -32,8 +41,9 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
       - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: cd apps/geas && flutter build linux --release
   android:
     name: Android debug APK
@@ -47,7 +57,8 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
-      - run: flutter pub get
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+      - run: flutter pub get --enforce-lockfile
       - run: cd apps/geas && flutter build apk --debug
   sonar:
     name: SonarQube
@@ -69,16 +80,11 @@ jobs:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-      # The Flutter that pubspec.lock was written with, since Flutter itself
-      # fixes some package versions. After upgrading Flutter on the dev
-      # machine: run `flutter pub get`, commit pubspec.lock, and put the
-      # new version here.
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
-          flutter-version: 3.47.2
+          flutter-version: ${{ env.FLUTTER_VERSION }}
       # The analysis reads the resolved dependencies, and the tests' coverage.
-      # Exactly the versions in pubspec.lock.
       - run: flutter pub get --enforce-lockfile
       - run: cd packages/geas_core && dart test --coverage-path=coverage/lcov.info
       - run: cd apps/geas_cli && dart test --coverage-path=coverage/lcov.info

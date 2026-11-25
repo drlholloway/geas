@@ -7,6 +7,5 @@ import 'package:crypto/crypto.dart';
 ///
 /// SHA-1 because that's how git names objects; it identifies content here
 /// and protects nothing.
-String gitBlobSha(List<int> content) => sha1 // NOSONAR
-    .convert(
-        [...utf8.encode('blob ${content.length}\x00'), ...content]).toString();
+String gitBlobSha(List<int> content) => sha1.convert(
+    [...utf8.encode('blob ${content.length}\x00'), ...content]).toString();

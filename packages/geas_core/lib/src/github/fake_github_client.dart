@@ -190,8 +190,11 @@ class FakeGitHubClient implements GitHubClient {
     return sha;
   }
 
-  static String _hash(List<String> parts) =>
-      sha1.convert(utf8.encode(parts.join('\n'))).toString();
+  // SHA-1 as git uses it, to name the fake's objects; nothing is secured
+  // by it.
+  static String _hash(List<String> parts) => sha1 // NOSONAR
+      .convert(utf8.encode(parts.join('\n')))
+      .toString();
 }
 
 class _Commit {

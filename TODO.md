@@ -201,9 +201,12 @@ The Git Data API refuses writes to an empty repo, so `geas init` creates
 - [x] SonarQube Cloud (2026-11-24): a job in the same workflow scans
       main and each PR with the tests' coverage, signing in with the
       workflow's identity (no token). `sonar-project.properties` says what
-      is analyzed. `pubspec.lock` is committed and the scan job installs
-      exactly it, on the Flutter version named in the job: after a Flutter
-      upgrade, commit the new lock and bump that version
+      is analyzed. `pubspec.lock` and the Android `gradle.lockfile` are
+      committed, and every CI job installs exactly them on the Flutter
+      version in `FLUTTER_VERSION` at the top of both workflows. After a
+      Flutter upgrade: `flutter pub get`, `./gradlew dependencies
+      :app:dependencies --write-locks` in `apps/geas/android`, commit the
+      lock files and bump that version
 
 ## Phase 1: Core model and format (`geas_core`)
 

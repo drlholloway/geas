@@ -65,8 +65,17 @@ android {
         release {
             signingConfig = if (hasReleaseKey) signingConfigs.getByName("release")
                             else signingConfigs.getByName("debug")
+            // What Flutter does for a release build anyway, said outright:
+            // unused code and resources are stripped and names shortened.
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
+}
+
+// See ../build.gradle.kts.
+dependencyLocking {
+    lockAllConfigurations()
 }
 
 kotlin {
